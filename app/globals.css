@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #fff1e0;
+}
+
+.ticker-badge-up {
+  background: #004d00;
+  color: #00dd00;
+  font-size: 11px;
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+.ticker-badge-down {
+  background: #4d0000;
+  color: #ff4444;
+  font-size: 11px;
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+.nav-active {
+  border-bottom: 2px solid #0d7680;
+  color: #0d7680;
+}
+
+.deal-card:hover {
+  background: #f5e8d5;
+}
+
+.ft-divider {
+  border-color: #cfc1b1;
+}
+
+/* ── Ticker bar marquee ── */
+@keyframes ticker-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.ticker-track {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: ticker-scroll 40s linear infinite;
+  will-change: transform;
+}
+
+.ticker-track:hover {
+  animation-play-state: paused;
+}
+
+/* ── Smooth scroll for anchor nav ── */
+html {
+  scroll-behavior: smooth;
+}
