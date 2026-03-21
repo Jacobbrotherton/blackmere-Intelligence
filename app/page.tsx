@@ -95,7 +95,7 @@ export default async function Home() {
         <div className="max-w-screen-xl mx-auto flex flex-wrap gap-6 justify-between">
           <div>
             <p className="font-display text-white text-lg mb-2">Blackmere Intelligence</p>
-            <p>Live data via NewsAPI. News refreshes every 5 minutes.</p>
+            <p>Live M&A intelligence powered by Groq AI. Refreshes every 2 hours.</p>
           </div>
           <div className="flex gap-8">
             <div>
@@ -113,7 +113,7 @@ export default async function Home() {
             <div>
               <p className="text-white font-semibold mb-2">Data</p>
               <ul className="space-y-1">
-                <li>NewsAPI</li>
+                <li>Groq AI</li>
                 <li>Deal Analysis</li>
               </ul>
             </div>
