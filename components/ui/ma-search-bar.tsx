@@ -3,8 +3,8 @@
 import { useRef, useState, useEffect } from "react";
 import { ArrowUp, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { UsageLimitBanner } from "@/components/ui/usage-limit-banner";
-import { hasRemainingUses, incrementUsage, getRemainingUses } from "@/lib/daily-limits";
+import { DailyLimitBanner } from "@/components/ui/DailyLimitBanner";
+import { hasUsesRemaining, consumeUse, getRemainingUses } from "@/lib/daily-limits";
 import { useSubscription } from "@/lib/subscription-context";
 
 // ── Render markdown-like bold text ────────────────────────────────────────────
@@ -50,8 +50,8 @@ export function MaSearchBar() {
 
   useEffect(() => {
     if (!isPremium) {
-      setLimitReached(!hasRemainingUses('askAnything'));
-      setRemaining(getRemainingUses('askAnything'));
+      setLimitReached(!hasUsesRemaining('askAnything', 3));
+      setRemaining(getRemainingUses('askAnything', 3));
     }
   }, [isPremium]);
 
@@ -59,7 +59,7 @@ export function MaSearchBar() {
     const trimmed = q.trim();
     if (!trimmed || loading) return;
 
-    if (!isPremium && !hasRemainingUses('askAnything')) {
+    if (!isPremium && !hasUsesRemaining('askAnything', 3)) {
       setLimitReached(true);
       return;
     }
@@ -80,9 +80,9 @@ export function MaSearchBar() {
       setAnswer(data.answer ?? "No answer returned.");
 
       if (!isPremium) {
-        incrementUsage('askAnything');
-        setRemaining(getRemainingUses('askAnything'));
-        setLimitReached(!hasRemainingUses('askAnything'));
+        consumeUse('askAnything');
+        setRemaining(getRemainingUses('askAnything', 3));
+        setLimitReached(!hasUsesRemaining('askAnything', 3));
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "";
@@ -104,7 +104,7 @@ export function MaSearchBar() {
   };
 
   if (!isPremium && limitReached) {
-    return <UsageLimitBanner feature="AI search" />;
+    return <DailyLimitBanner feature="AI search" />;
   }
 
   return (

@@ -16,7 +16,10 @@ import SpotlightImage from "@/components/SpotlightImage";
 function selectSpotlightFour(articles: Article[]): Article[] {
   const usedUrls = new Set<string>();
   const unique: Article[] = [];
-  for (const article of articles) {
+  const sorted = [...articles].sort((a, b) =>
+    (b.description ? 1 : 0) - (a.description ? 1 : 0)
+  );
+  for (const article of sorted) {
     if (!usedUrls.has(article.url)) {
       usedUrls.add(article.url);
       unique.push(article);
@@ -118,7 +121,7 @@ function SecondaryCard({ article }: { article: Article }) {
 // ── Spotlight section ─────────────────────────────────────────────────────────
 export default function DealSpotlight({ articles }: { articles: Article[] }) {
   const picks = selectSpotlightFour(articles);
-  if (picks.length < 2) return null;
+  if (picks.length < 1) return null;
 
   const [p1, p2, p3, p4] = picks;
 

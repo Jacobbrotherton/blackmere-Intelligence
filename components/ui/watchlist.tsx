@@ -2,8 +2,8 @@
 import { useState, useEffect } from "react";
 import { Plus, X, Eye, TrendingUp, TrendingDown, Loader2 } from "lucide-react";
 import { PremiumGate } from "@/components/ui/premium-gate";
-import { UsageLimitBanner } from "@/components/ui/usage-limit-banner";
-import { hasRemainingUses, incrementUsage, getRemainingUses } from "@/lib/daily-limits";
+import { DailyLimitBanner } from "@/components/ui/DailyLimitBanner";
+import { hasUsesRemaining, consumeUse, getRemainingUses } from "@/lib/daily-limits";
 import { useSubscription } from "@/lib/subscription-context";
 
 const MAX_WATCHLIST = 20;
@@ -43,7 +43,7 @@ export function Watchlist() {
   // Load saved tickers from localStorage and immediately fetch quotes
   useEffect(() => {
     if (!isPremium) {
-      setLimitReached(!hasRemainingUses('watchlist'));
+      setLimitReached(!hasUsesRemaining('watchlist'));
       setRemaining(getRemainingUses('watchlist'));
     }
     try {
@@ -58,7 +58,7 @@ export function Watchlist() {
   }, [isPremium]);
 
   const addTicker = () => {
-    if (!isPremium && !hasRemainingUses('watchlist')) {
+    if (!isPremium && !hasUsesRemaining('watchlist')) {
       setLimitReached(true);
       return;
     }
@@ -70,9 +70,9 @@ export function Watchlist() {
     fetchQuote(t);
     setInput("");
     if (!isPremium) {
-      incrementUsage('watchlist');
+      consumeUse('watchlist');
       setRemaining(getRemainingUses('watchlist'));
-      setLimitReached(!hasRemainingUses('watchlist'));
+      setLimitReached(!hasUsesRemaining('watchlist'));
     }
   };
 
@@ -86,7 +86,7 @@ export function Watchlist() {
   if (!isPremium && limitReached && tickers.length === 0) {
     return (
       <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6">
-        <UsageLimitBanner feature="watchlist" />
+        <DailyLimitBanner feature="watchlist" />
       </div>
     );
   }
@@ -110,7 +110,7 @@ export function Watchlist() {
         )}
 
         {(!isPremium && limitReached) ? (
-          <UsageLimitBanner feature="watchlist" />
+          <DailyLimitBanner feature="watchlist" />
         ) : (
           <div className="flex gap-2 mb-5">
             <input

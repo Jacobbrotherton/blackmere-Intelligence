@@ -50,20 +50,14 @@ function slicePath(start: number, end: number, rOut: number, rIn: number): strin
 }
 
 function matchesSector(article: Article, sectorId: string, keywords: readonly string[]): boolean {
-  // First check the explicit sector field set by Groq
   if (article.sector) {
-    const articleSector = article.sector.toLowerCase();
-    // Map sector IDs to their display names for comparison
-    const sectorLabel = sectorId.replace(/-/g, " ");
-    if (articleSector.includes(sectorLabel) || sectorLabel.includes(articleSector)) {
-      return true;
-    }
-    // Special case: "private equity" matches "private-equity"
-    if (sectorId === "private-equity" && (articleSector.includes("private equity") || articleSector.includes("private-equity"))) {
-      return true;
-    }
+    const as = article.sector.toLowerCase().trim();
+    const sid = sectorId.toLowerCase().replace(/-/g, " ");
+    if (as.includes(sid) || sid.includes(as) || as === sid) return true;
+    if (sectorId === "private-equity" && (as.includes("private equity") || as.includes("pe "))) return true;
+    if (sectorId === "technology" && (as.includes("tech") || as.includes("ai") || as.includes("software"))) return true;
+    if (sectorId === "financials" && (as.includes("financial") || as.includes("finance") || as.includes("banking"))) return true;
   }
-  // Fall back to keyword matching
   const text = `${article.title} ${article.description ?? ""}`.toLowerCase();
   return keywords.some((kw) => text.includes(kw.toLowerCase()));
 }

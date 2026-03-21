@@ -1,41 +1,27 @@
-// Client-side daily usage tracking using localStorage
-// Resets at midnight each day
+type Feature = 'askAnything' | 'calculator' | 'watchlist';
 
-const LIMITS = {
-  askAnything: 3,
-  calculator: 1,
-  watchlist: 1,
-} as const;
-
-type FeatureKey = keyof typeof LIMITS;
-
-function getTodayKey(): string {
-  return new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+function todayKey(feature: Feature): string {
+  const d = new Date().toISOString().split('T')[0];
+  return `bm_limit_${feature}_${d}`;
 }
 
-function getUsageKey(feature: FeatureKey): string {
-  return `blackmere_usage_${feature}_${getTodayKey()}`;
+export function getRemainingUses(feature: Feature, limit = 1): number {
+  if (typeof window === 'undefined') return limit;
+  const used = parseInt(localStorage.getItem(todayKey(feature)) ?? '0', 10);
+  return Math.max(0, limit - used);
 }
 
-export function getUsageCount(feature: FeatureKey): number {
-  if (typeof window === 'undefined') return 0;
-  return parseInt(localStorage.getItem(getUsageKey(feature)) ?? '0', 10);
+export function hasUsesRemaining(feature: Feature, limit = 1): boolean {
+  return getRemainingUses(feature, limit) > 0;
 }
 
-export function incrementUsage(feature: FeatureKey): void {
+export function consumeUse(feature: Feature): void {
   if (typeof window === 'undefined') return;
-  const current = getUsageCount(feature);
-  localStorage.setItem(getUsageKey(feature), String(current + 1));
+  const key = todayKey(feature);
+  const used = parseInt(localStorage.getItem(key) ?? '0', 10);
+  localStorage.setItem(key, String(used + 1));
 }
 
-export function hasRemainingUses(feature: FeatureKey): boolean {
-  return getUsageCount(feature) < LIMITS[feature];
-}
-
-export function getRemainingUses(feature: FeatureKey): number {
-  return Math.max(0, LIMITS[feature] - getUsageCount(feature));
-}
-
-export function getLimit(feature: FeatureKey): number {
-  return LIMITS[feature];
-}
+// Legacy aliases for backward compatibility
+export const hasRemainingUses = hasUsesRemaining;
+export const incrementUsage = consumeUse;

@@ -60,8 +60,8 @@ export default function SpotlightImage({
     <img
       src={imgSrc}
       alt={alt}
-      className={`w-full h-full object-cover object-center ${className}`}
-      style={{ objectPosition: 'center 20%' }}
+      className={`w-full h-full object-cover object-top ${className}`}
+      style={{ objectPosition: 'center 15%' }}
       onError={() => {
         if (imgSrc !== fallback) {
           setImgSrc(fallback);

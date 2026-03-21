@@ -14,13 +14,8 @@ import UpgradeNavButton from "@/components/UpgradeNavButton";
 export default async function Home() {
   const articles = await fetchMaNews();
 
-  // Deduplicate across sections: LeadStories uses indices 0-7, so DealSpotlight
-  // and SectorOrbit only receive articles not already shown there.
   const LEAD_COUNT = 8;
   const leadUrls = new Set(articles.slice(0, LEAD_COUNT).map((a) => a.url));
-  const remainingArticles = articles.length > 8
-    ? articles.filter((a) => !leadUrls.has(a.url))
-    : articles; // use all articles if fewer than 8 total
 
   return (
     <>
@@ -80,13 +75,13 @@ export default async function Home() {
         </div>
 
         {/* FT-style spotlight — 4 most significant deals */}
-        <DealSpotlight articles={remainingArticles} />
+        <DealSpotlight articles={articles} />
 
       </main>
 
       {/* Full-width orbital sector explorer */}
       <div className="max-w-screen-xl mx-auto px-6">
-        <SectorOrbit articles={remainingArticles} />
+        <SectorOrbit articles={articles} />
       </div>
 
       {/* Landmark Deals of the Last Decade carousel */}

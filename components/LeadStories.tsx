@@ -162,6 +162,22 @@ export default function LeadStories({ articles }: { articles: Article[] }) {
                 </blockquote>
               </ArticleLink>
             )}
+
+            {/* Additional articles below map */}
+            {articles.slice(8, 14).filter(Boolean).map((a, i) => (
+              <div key={`centre-extra-${i}`}>
+                <hr className="ft-divider border-t my-3" />
+                <SectorTag title={a.title} description={a.description} />
+                <ArticleLink article={a}>
+                  <h4 className="font-display text-base font-semibold leading-snug mt-1 hover:text-ft-teal cursor-pointer line-clamp-2">
+                    {a.title}
+                  </h4>
+                </ArticleLink>
+                <p className="text-xs text-ft-muted mt-0.5">
+                  {a.source.name} · {timeAgo(a.publishedAt)}
+                </p>
+              </div>
+            ))}
           </>
         ) : (
           <TopWorldMap />

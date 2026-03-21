@@ -1,3 +1,5 @@
+export const revalidate = 7200;
+
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import {

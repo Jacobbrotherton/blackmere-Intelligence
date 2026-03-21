@@ -2,8 +2,8 @@
 import { useState, useEffect } from "react";
 import { Calculator, Loader2, TrendingUp } from "lucide-react";
 import { PremiumGate } from "@/components/ui/premium-gate";
-import { UsageLimitBanner } from "@/components/ui/usage-limit-banner";
-import { hasRemainingUses, incrementUsage, getRemainingUses } from "@/lib/daily-limits";
+import { DailyLimitBanner } from "@/components/ui/DailyLimitBanner";
+import { hasUsesRemaining, consumeUse, getRemainingUses } from "@/lib/daily-limits";
 import { useSubscription } from "@/lib/subscription-context";
 
 interface CalcResult {
@@ -44,14 +44,14 @@ export function AcquisitionPremiumCalculator() {
 
   useEffect(() => {
     if (!isPremium) {
-      setLimitReached(!hasRemainingUses('calculator'));
+      setLimitReached(!hasUsesRemaining('calculator'));
       setRemaining(getRemainingUses('calculator'));
     }
   }, [isPremium]);
 
   const calculate = async () => {
     if (!ticker.trim()) return;
-    if (!isPremium && !hasRemainingUses('calculator')) {
+    if (!isPremium && !hasUsesRemaining('calculator')) {
       setLimitReached(true);
       return;
     }
@@ -69,9 +69,9 @@ export function AcquisitionPremiumCalculator() {
       else {
         setResult(data as CalcResult);
         if (!isPremium) {
-          incrementUsage('calculator');
+          consumeUse('calculator');
           setRemaining(getRemainingUses('calculator'));
-          setLimitReached(!hasRemainingUses('calculator'));
+          setLimitReached(!hasUsesRemaining('calculator'));
         }
       }
     } catch {
@@ -84,7 +84,7 @@ export function AcquisitionPremiumCalculator() {
   if (!isPremium && limitReached) {
     return (
       <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6">
-        <UsageLimitBanner feature="calculator" />
+        <DailyLimitBanner feature="calculator" />
       </div>
     );
   }
