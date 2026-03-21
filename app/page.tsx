@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { fetchMaNews, SECTOR_MAP } from "@/lib/news";
 import TickerBar from "@/components/TickerBar";
 import LeadStories from "@/components/LeadStories";
