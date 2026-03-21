@@ -45,13 +45,13 @@ export function MaSearchBar() {
   const [loading, setLoading] = useState(false);
   const [asked, setAsked] = useState("");
   const [limitReached, setLimitReached] = useState(false);
-  const [remaining, setRemaining] = useState(3);
+  const [remaining, setRemaining] = useState(1);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (!isPremium) {
-      setLimitReached(!hasUsesRemaining('askAnything', 3));
-      setRemaining(getRemainingUses('askAnything', 3));
+      setLimitReached(!hasUsesRemaining('askAnything', 1));
+      setRemaining(getRemainingUses('askAnything', 1));
     }
   }, [isPremium]);
 
@@ -59,7 +59,7 @@ export function MaSearchBar() {
     const trimmed = q.trim();
     if (!trimmed || loading) return;
 
-    if (!isPremium && !hasUsesRemaining('askAnything', 3)) {
+    if (!isPremium && !hasUsesRemaining('askAnything', 1)) {
       setLimitReached(true);
       return;
     }
@@ -81,8 +81,8 @@ export function MaSearchBar() {
 
       if (!isPremium) {
         consumeUse('askAnything');
-        setRemaining(getRemainingUses('askAnything', 3));
-        setLimitReached(!hasUsesRemaining('askAnything', 3));
+        setRemaining(getRemainingUses('askAnything', 1));
+        setLimitReached(!hasUsesRemaining('askAnything', 1));
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "";
@@ -104,7 +104,11 @@ export function MaSearchBar() {
   };
 
   if (!isPremium && limitReached) {
-    return <DailyLimitBanner feature="AI search" />;
+    return (
+      <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6">
+        <DailyLimitBanner feature="AI search" />
+      </div>
+    );
   }
 
   return (
@@ -112,7 +116,7 @@ export function MaSearchBar() {
 
       {!isPremium && (
         <p className="text-amber-400/70 text-xs mb-3 text-center">
-          Free tier: {remaining} search{remaining !== 1 ? 'es' : ''} remaining today
+          Free tier: {remaining} of 1 free search remaining today
         </p>
       )}
 

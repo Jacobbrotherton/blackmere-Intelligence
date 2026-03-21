@@ -105,7 +105,7 @@ export function Watchlist() {
 
         {!isPremium && (
           <p className="text-amber-400/70 text-xs mb-4">
-            Free tier: {remaining} ticker add{remaining !== 1 ? 's' : ''} remaining today
+            Free tier: {remaining} of 1 free ticker add remaining today
           </p>
         )}
 

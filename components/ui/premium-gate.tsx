@@ -20,16 +20,21 @@ export function PremiumGate({ children, blur = true, label = "Premium Feature" }
   if (blur) {
     return (
       <div className="relative">
-        <div className="pointer-events-none select-none blur-sm opacity-60">
+        <div className="pointer-events-none select-none blur-sm opacity-40">
           {children}
         </div>
         <div
-          className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 backdrop-blur-[2px] rounded-lg cursor-pointer"
+          className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900/90 backdrop-blur-[2px] rounded-2xl cursor-pointer"
           onClick={() => router.push("/subscribe")}
         >
-          <Lock size={20} className="text-ft-black mb-2" />
-          <p className="text-ft-black font-semibold text-sm">{label}</p>
-          <p className="text-ft-black/60 text-xs mt-1">Upgrade to Premium →</p>
+          <div className="w-12 h-12 bg-amber-500/10 rounded-full flex items-center justify-center mb-3">
+            <Lock size={20} className="text-amber-400" />
+          </div>
+          <p className="text-white font-bold text-sm mb-1">{label}</p>
+          <p className="text-white/40 text-xs mb-4">Upgrade to unlock unlimited access</p>
+          <button className="px-5 py-2 rounded-xl font-bold text-sm bg-white text-[#030303] hover:bg-white/90 transition-all">
+            Upgrade — £6.99/month
+          </button>
         </div>
       </div>
     );
@@ -37,12 +42,17 @@ export function PremiumGate({ children, blur = true, label = "Premium Feature" }
 
   return (
     <div
-      className="flex flex-col items-center justify-center p-8 border border-dashed border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+      className="flex flex-col items-center justify-center p-8 bg-zinc-900 border border-zinc-700 rounded-2xl cursor-pointer hover:border-zinc-600 transition-colors"
       onClick={() => router.push("/subscribe")}
     >
-      <Lock size={24} className="text-ft-black/40 mb-3" />
-      <p className="text-ft-black font-semibold">{label}</p>
-      <p className="text-ft-black/50 text-sm mt-1">Available on Premium — Upgrade for £6.99/month</p>
+      <div className="w-12 h-12 bg-amber-500/10 rounded-full flex items-center justify-center mb-3">
+        <Lock size={20} className="text-amber-400" />
+      </div>
+      <p className="text-white font-bold mb-1">{label}</p>
+      <p className="text-white/40 text-sm mt-1 mb-4">Available on Premium — Upgrade for £6.99/month</p>
+      <button className="px-5 py-2 rounded-xl font-bold text-sm bg-white text-[#030303] hover:bg-white/90 transition-all">
+        Upgrade to Premium
+      </button>
     </div>
   );
 }

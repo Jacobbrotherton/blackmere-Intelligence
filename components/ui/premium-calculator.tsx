@@ -104,7 +104,7 @@ export function AcquisitionPremiumCalculator() {
 
         {!isPremium && (
           <p className="text-amber-400/70 text-xs mb-4">
-            Free tier: {remaining} calculation{remaining !== 1 ? 's' : ''} remaining today
+            Free tier: {remaining} of 1 free calculation remaining today
           </p>
         )}
 

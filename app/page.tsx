@@ -9,6 +9,7 @@ import DealSpotlight from "@/components/DealSpotlight";
 import ArticleDrawer from "@/components/ArticleDrawer";
 import BriefingPrefetcher from "@/components/BriefingPrefetcher";
 import LandmarkDeals from "@/components/LandmarkDeals";
+import { PremiumUpgradeBanner } from "@/components/PremiumUpgradeBanner";
 import SearchBar from "@/components/SearchBar";
 import StockAnalysisNavButton from "@/components/StockAnalysisNavButton";
 import UpgradeNavButton from "@/components/UpgradeNavButton";
@@ -88,6 +89,9 @@ export default async function Home() {
 
       {/* Landmark Deals of the Last Decade carousel */}
       <LandmarkDeals />
+
+      {/* Premium upgrade banner — shown to free users at bottom of homepage */}
+      <PremiumUpgradeBanner />
 
       {/* Footer */}
       <footer className="bg-ft-black text-gray-400 text-xs mt-0 px-6 py-8">

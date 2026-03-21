@@ -30,7 +30,7 @@ function selectSpotlightFour(articles: Article[]): Article[] {
 }
 
 // ── Card components ────────────────────────────────────────────────────────────
-function PrimaryCard({ article }: { article: Article }) {
+function PrimaryCard({ article, index }: { article: Article; index: number }) {
   const sector = getSector(article.title, article.description);
   const rawValue = extractDealValue(`${article.title} ${article.description ?? ""}`);
   const dealValueStr = rawValue !== null ? formatDealValue(rawValue) : null;
@@ -45,6 +45,7 @@ function PrimaryCard({ article }: { article: Article }) {
           src={article.urlToImage ?? null}
           alt={article.title}
           sector={sector}
+          index={index}
           className="transition-transform duration-500 group-hover:scale-[1.02]"
         />
       </div>
@@ -77,7 +78,7 @@ function PrimaryCard({ article }: { article: Article }) {
   );
 }
 
-function SecondaryCard({ article }: { article: Article }) {
+function SecondaryCard({ article, index }: { article: Article; index: number }) {
   const sector = getSector(article.title, article.description);
 
   return (
@@ -90,6 +91,7 @@ function SecondaryCard({ article }: { article: Article }) {
           src={article.urlToImage ?? null}
           alt={article.title}
           sector={sector}
+          index={index}
           className="transition-transform duration-500 group-hover:scale-[1.02]"
         />
       </div>
@@ -134,15 +136,15 @@ export default function DealSpotlight({ articles }: { articles: Article[] }) {
 
       {/* Row 1 */}
       <div className="grid grid-cols-12 gap-6 items-start mb-8">
-        <PrimaryCard article={p1} />
-        <SecondaryCard article={p2} />
+        <PrimaryCard article={p1} index={0} />
+        <SecondaryCard article={p2} index={1} />
       </div>
 
       {/* Row 2 */}
       {p3 && p4 && (
         <div className="grid grid-cols-12 gap-6 items-start border-t border-ft-border pt-6">
-          <PrimaryCard article={p3} />
-          <SecondaryCard article={p4} />
+          <PrimaryCard article={p3} index={2} />
+          <SecondaryCard article={p4} index={3} />
         </div>
       )}
     </div>

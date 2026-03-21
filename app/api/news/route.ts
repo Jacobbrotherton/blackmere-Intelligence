@@ -46,30 +46,32 @@ export async function GET() {
         },
         {
           role: "user",
-          content: `Generate exactly 40 realistic M&A news articles from the last 14 days. Today is ${today}.
+          content: `Generate exactly 80 realistic M&A news articles from the last 14 days. Today is ${today}.
 
-Distribute them across sectors as follows:
-- 10 Technology deals (AI, software, semiconductors, cloud, cybersecurity)
-- 7 Healthcare deals (pharma, biotech, medical devices)
-- 7 Financials deals (banking, insurance, asset management, fintech)
-- 5 Private Equity deals (LBO, buyouts, take-private)
-- 4 Energy deals (oil, gas, renewables, mining)
-- 4 Industrials deals (manufacturing, aerospace, logistics)
-- 3 other sectors (Consumer, Media, Real Estate)
+Distribute them across sectors as follows (MINIMUM per sector):
+- 20 Technology deals (AI, software, semiconductors, cloud, cybersecurity, SaaS)
+- 15 Healthcare deals (pharma, biotech, medical devices, life sciences)
+- 15 Financials deals (banking, insurance, asset management, fintech, payments)
+- 10 Private Equity deals (LBO, leveraged buyouts, take-private, growth equity)
+- 8 Energy deals (oil, gas, renewables, solar, wind, mining, LNG)
+- 8 Industrials deals (manufacturing, aerospace, defense, logistics, construction)
+- 4 other sectors (Consumer, Media, Real Estate, Retail)
 
 CRITICAL RULES:
-- Every deal must involve completely different company names
+- Every deal must involve completely different company names — no repeats across all 80
 - No two articles can have the same acquirer AND target combination
 - No duplicate headlines
-- Every deal must be unique with realistic company names and deal values
-- Include specific dollar/pound amounts in every deal
-- Use varied sources: Bloomberg, Reuters, WSJ, Financial Times, CNBC, Forbes
+- Every deal must be unique with realistic, specific company names and deal values
+- Include specific dollar/pound/euro amounts in every deal
+- Use varied sources: Bloomberg, Reuters, WSJ, Financial Times, CNBC, Forbes, S&P Global
+- Vary deal sizes from $200M to $50B realistically
+- Use today's date context — make deals feel current and believable
 
 Return ONLY a JSON array where each object has exactly these fields:
 {
   "title": "Compelling headline including company names and deal value",
   "description": "2-3 sentence summary with key financial details and strategic rationale",
-  "url": "https://example.com/unique-article-${Math.random()}",
+  "url": "https://example.com/article-${Date.now()}-1",
   "publishedAt": "2026-03-15T10:00:00Z",
   "source": { "name": "Bloomberg" },
   "sector": "Technology",
@@ -81,8 +83,8 @@ Return ONLY a JSON array where each object has exactly these fields:
 Return ONLY the JSON array. No markdown, no backticks, no explanation.`,
         },
       ],
-      temperature: 0.7,
-      max_tokens: 6000,
+      temperature: 0.8,
+      max_tokens: 12000,
     });
 
     const raw = completion.choices[0]?.message?.content ?? "";
