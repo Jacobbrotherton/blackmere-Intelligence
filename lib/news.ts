@@ -1,3 +1,5 @@
+import { setCachedArticles, getCachedArticles, isCacheStale } from "@/lib/article-cache";
+
 export interface Article {
   title: string;
   description: string | null;
@@ -176,6 +178,19 @@ export function computeMarketStats(articles: Article[]) {
   };
 }
 
+function deduplicateArticles(articles: Article[]): Article[] {
+  const seenTitles = new Set<string>();
+  const seenDeals = new Set<string>();
+  return articles.filter(article => {
+    const titleKey = article.title?.toLowerCase().split(' ').slice(0, 6).join('-') ?? '';
+    const dealKey = `${article.acquirer?.toLowerCase()}-${article.target?.toLowerCase()}`;
+    if (seenTitles.has(titleKey) || seenDeals.has(dealKey)) return false;
+    seenTitles.add(titleKey);
+    if (article.acquirer && article.target) seenDeals.add(dealKey);
+    return true;
+  });
+}
+
 // Server-side in-memory cache (persists across requests within the same process)
 let _cachedArticles: Article[] = [];
 let _lastFetched = 0;
@@ -183,8 +198,15 @@ const CACHE_MS = 2 * 60 * 60 * 1000; // 2 hours
 
 export async function fetchMaNews(): Promise<Article[]> {
   const now = Date.now();
+
+  // Check local cache first
   if (_cachedArticles.length > 0 && now - _lastFetched < CACHE_MS) {
     return _cachedArticles;
+  }
+
+  // Check shared cross-module cache
+  if (!isCacheStale() && getCachedArticles().length > 0) {
+    return getCachedArticles() as Article[];
   }
 
   if (!process.env.GROQ_API_KEY) {
@@ -195,6 +217,7 @@ export async function fetchMaNews(): Promise<Article[]> {
   try {
     const { default: Groq } = await import("groq-sdk");
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    const today = new Date().toISOString().split('T')[0];
 
     const completion = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
@@ -206,28 +229,43 @@ Return ONLY a valid JSON array. No markdown. No backticks. Just raw JSON startin
         },
         {
           role: "user",
-          content: `Generate 20 realistic M&A news articles from the last 7 days covering mergers, acquisitions, buyouts, PE deals and divestitures across all sectors globally.
+          content: `Generate exactly 40 realistic M&A news articles from the last 14 days. Today is ${today}.
+
+Distribute them across sectors as follows:
+- 10 Technology deals (AI, software, semiconductors, cloud, cybersecurity)
+- 7 Healthcare deals (pharma, biotech, medical devices)
+- 7 Financials deals (banking, insurance, asset management, fintech)
+- 5 Private Equity deals (LBO, buyouts, take-private)
+- 4 Energy deals (oil, gas, renewables, mining)
+- 4 Industrials deals (manufacturing, aerospace, logistics)
+- 3 other sectors (Consumer, Media, Real Estate)
+
+CRITICAL RULES:
+- Every deal must involve completely different company names
+- No two articles can have the same acquirer AND target combination
+- No duplicate headlines
+- Every deal must be unique with realistic company names and deal values
+- Include specific dollar/pound amounts in every deal
+- Use varied sources: Bloomberg, Reuters, WSJ, Financial Times, CNBC, Forbes
 
 Return ONLY a JSON array where each object has exactly these fields:
 {
   "title": "Compelling headline including company names and deal value",
-  "description": "2-3 sentence summary with key financial details",
-  "url": "https://example.com/article",
-  "publishedAt": "2026-03-21T10:00:00Z",
-  "source": { "name": "Financial Times" },
+  "description": "2-3 sentence summary with key financial details and strategic rationale",
+  "url": "https://example.com/unique-article-1",
+  "publishedAt": "2026-03-15T10:00:00Z",
+  "source": { "name": "Bloomberg" },
   "sector": "Technology",
   "dealValue": "$5.2B",
   "acquirer": "Company Name",
-  "target": "Target Company"
+  "target": "Target Company Name"
 }
 
-Use varied sources: Bloomberg, Reuters, WSJ, Financial Times, CNBC.
-Cover sectors: Technology, Healthcare, Private Equity, Energy, Financials, Consumer, Media.
-Return ONLY the JSON array.`,
+Return ONLY the JSON array. No markdown, no backticks, no explanation.`,
         },
       ],
       temperature: 0.7,
-      max_tokens: 4000,
+      max_tokens: 6000,
     });
 
     const raw = completion.choices[0]?.message?.content ?? "";
@@ -240,8 +278,25 @@ Return ONLY the JSON array.`,
     const parsed = JSON.parse(jsonStr);
     if (!Array.isArray(parsed) || parsed.length === 0) throw new Error("Empty or invalid array");
 
-    _cachedArticles = parsed as Article[];
+    let articles = deduplicateArticles(parsed as Article[]);
+
+    // Fallback: if fewer than 15 articles, append fallback articles to reach 15
+    if (articles.length < 15) {
+      const fallback = getFallbackArticles();
+      const existingUrls = new Set(articles.map(a => a.url));
+      for (const fa of fallback) {
+        if (articles.length >= 15) break;
+        if (!existingUrls.has(fa.url)) {
+          articles.push(fa);
+          existingUrls.add(fa.url);
+        }
+      }
+    }
+
+    _cachedArticles = articles;
     _lastFetched = now;
+    // Update shared cross-module cache
+    setCachedArticles(articles);
     return _cachedArticles;
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Unknown error";

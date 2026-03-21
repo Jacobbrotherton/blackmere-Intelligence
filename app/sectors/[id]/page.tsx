@@ -8,6 +8,7 @@ import {
   extractDealValue,
   formatDealValue,
 } from "@/lib/news";
+import { getCachedArticles, isCacheStale } from "@/lib/article-cache";
 import ArticleLink from "@/components/ArticleLink";
 import ArticleDrawer from "@/components/ArticleDrawer";
 
@@ -79,7 +80,11 @@ export default async function SectorPage({ params }: { params: { id: string } })
   const sector = SECTOR_MAP.find((s) => s.id === params.id);
   if (!sector) notFound();
 
-  const allArticles = await fetchMaNews();
+  // Use shared cache if available and fresh — avoids a redundant Groq call
+  const cached = getCachedArticles();
+  const allArticles: Article[] = (!isCacheStale() && cached.length > 0)
+    ? (cached as Article[])
+    : await fetchMaNews();
   const sectorArticles = allArticles.filter((a) => {
     const text = `${a.title} ${a.description ?? ""}`.toLowerCase();
     return sector.keywords.some((kw) => text.includes(kw.toLowerCase()));

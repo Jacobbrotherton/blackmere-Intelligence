@@ -18,7 +18,9 @@ export default async function Home() {
   // and SectorOrbit only receive articles not already shown there.
   const LEAD_COUNT = 8;
   const leadUrls = new Set(articles.slice(0, LEAD_COUNT).map((a) => a.url));
-  const remainingArticles = articles.filter((a) => !leadUrls.has(a.url));
+  const remainingArticles = articles.length > 8
+    ? articles.filter((a) => !leadUrls.has(a.url))
+    : articles; // use all articles if fewer than 8 total
 
   return (
     <>

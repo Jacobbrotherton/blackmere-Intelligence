@@ -3,6 +3,7 @@ import { RumouredDealsSection } from "@/components/ui/rumoured-deals-section";
 import { MaSearchBar } from "@/components/ui/ma-search-bar";
 import { AcquisitionPremiumCalculator } from "@/components/ui/premium-calculator";
 import { Watchlist } from "@/components/ui/watchlist";
+import { PremiumUpgradeBanner } from "@/components/ui/premium-upgrade-banner";
 
 export default function StockAnalysisPage() {
   return (
@@ -43,6 +44,8 @@ export default function StockAnalysisPage() {
       </section>
 
       <RumouredDealsSection />
+
+      <PremiumUpgradeBanner />
     </main>
   );
 }

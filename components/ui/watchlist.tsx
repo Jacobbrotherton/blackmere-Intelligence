@@ -2,6 +2,9 @@
 import { useState, useEffect } from "react";
 import { Plus, X, Eye, TrendingUp, TrendingDown, Loader2 } from "lucide-react";
 import { PremiumGate } from "@/components/ui/premium-gate";
+import { UsageLimitBanner } from "@/components/ui/usage-limit-banner";
+import { hasRemainingUses, incrementUsage, getRemainingUses } from "@/lib/daily-limits";
+import { useSubscription } from "@/lib/subscription-context";
 
 const MAX_WATCHLIST = 20;
 
@@ -16,9 +19,12 @@ interface Quote {
 }
 
 export function Watchlist() {
+  const { isPremium } = useSubscription();
   const [tickers, setTickers] = useState<string[]>([]);
   const [input, setInput] = useState("");
   const [quotes, setQuotes] = useState<Record<string, Quote | null>>({});
+  const [limitReached, setLimitReached] = useState(false);
+  const [remaining, setRemaining] = useState(1);
 
   const fetchQuote = async (ticker: string) => {
     try {
@@ -36,6 +42,10 @@ export function Watchlist() {
 
   // Load saved tickers from localStorage and immediately fetch quotes
   useEffect(() => {
+    if (!isPremium) {
+      setLimitReached(!hasRemainingUses('watchlist'));
+      setRemaining(getRemainingUses('watchlist'));
+    }
     try {
       const saved = localStorage.getItem("blackmere_watchlist");
       if (saved) {
@@ -45,9 +55,13 @@ export function Watchlist() {
       }
     } catch {}
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isPremium]);
 
   const addTicker = () => {
+    if (!isPremium && !hasRemainingUses('watchlist')) {
+      setLimitReached(true);
+      return;
+    }
     const t = input.trim().toUpperCase();
     if (!t || tickers.includes(t) || tickers.length >= MAX_WATCHLIST) return;
     const updated = [...tickers, t];
@@ -55,6 +69,11 @@ export function Watchlist() {
     try { localStorage.setItem("blackmere_watchlist", JSON.stringify(updated)); } catch {}
     fetchQuote(t);
     setInput("");
+    if (!isPremium) {
+      incrementUsage('watchlist');
+      setRemaining(getRemainingUses('watchlist'));
+      setLimitReached(!hasRemainingUses('watchlist'));
+    }
   };
 
   const removeTicker = (t: string) => {
@@ -63,6 +82,14 @@ export function Watchlist() {
     setQuotes(prev => { const next = { ...prev }; delete next[t]; return next; });
     try { localStorage.setItem("blackmere_watchlist", JSON.stringify(updated)); } catch {}
   };
+
+  if (!isPremium && limitReached && tickers.length === 0) {
+    return (
+      <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6">
+        <UsageLimitBanner feature="watchlist" />
+      </div>
+    );
+  }
 
   return (
     <PremiumGate label="Watchlist — Premium Feature">
@@ -76,30 +103,40 @@ export function Watchlist() {
           Monitor companies for M&A activity. AI alerts when rumours surface.
         </p>
 
-        <div className="flex gap-2 mb-5">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value.toUpperCase())}
-            onKeyDown={(e) => e.key === "Enter" && addTicker()}
-            placeholder="Add ticker (e.g. AAPL)"
-            className="flex-1 bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm font-mono font-semibold text-white placeholder-white/30 outline-none focus:border-indigo-500/50 transition-colors"
-          />
-          <button
-            onClick={addTicker}
-            disabled={tickers.length >= MAX_WATCHLIST}
-            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold disabled:opacity-40 transition-colors"
-          >
-            <Plus size={16} />
-          </button>
-        </div>
+        {!isPremium && (
+          <p className="text-amber-400/70 text-xs mb-4">
+            Free tier: {remaining} ticker add{remaining !== 1 ? 's' : ''} remaining today
+          </p>
+        )}
 
-        {tickers.length === 0 ? (
+        {(!isPremium && limitReached) ? (
+          <UsageLimitBanner feature="watchlist" />
+        ) : (
+          <div className="flex gap-2 mb-5">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value.toUpperCase())}
+              onKeyDown={(e) => e.key === "Enter" && addTicker()}
+              placeholder="Add ticker (e.g. AAPL)"
+              className="flex-1 bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm font-mono font-semibold text-white placeholder-white/30 outline-none focus:border-indigo-500/50 transition-colors"
+            />
+            <button
+              onClick={addTicker}
+              disabled={tickers.length >= MAX_WATCHLIST}
+              className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold disabled:opacity-40 transition-colors"
+            >
+              <Plus size={16} />
+            </button>
+          </div>
+        )}
+
+        {tickers.length === 0 && !limitReached ? (
           <div className="text-center py-8 border border-dashed border-zinc-700 rounded-xl">
             <Eye size={24} className="text-white/20 mx-auto mb-2" />
             <p className="text-white/30 text-sm">Add tickers to start monitoring for M&A activity</p>
             <p className="text-white/20 text-xs mt-1">Up to {MAX_WATCHLIST} companies</p>
           </div>
-        ) : (
+        ) : tickers.length > 0 ? (
           <div className="space-y-2">
             {tickers.map((ticker) => {
               const q = quotes[ticker];
@@ -149,7 +186,7 @@ export function Watchlist() {
               );
             })}
           </div>
-        )}
+        ) : null}
 
         <div className="mt-4">
           <span className="text-xs text-white/20">⚡ Powered by Groq AI</span>

@@ -1,7 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Calculator, Loader2, TrendingUp } from "lucide-react";
 import { PremiumGate } from "@/components/ui/premium-gate";
+import { UsageLimitBanner } from "@/components/ui/usage-limit-banner";
+import { hasRemainingUses, incrementUsage, getRemainingUses } from "@/lib/daily-limits";
+import { useSubscription } from "@/lib/subscription-context";
 
 interface CalcResult {
   ticker: string;
@@ -31,13 +34,27 @@ const likelihoodColor: Record<string, string> = {
 };
 
 export function AcquisitionPremiumCalculator() {
+  const { isPremium } = useSubscription();
   const [ticker, setTicker] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CalcResult | null>(null);
   const [error, setError] = useState("");
+  const [limitReached, setLimitReached] = useState(false);
+  const [remaining, setRemaining] = useState(1);
+
+  useEffect(() => {
+    if (!isPremium) {
+      setLimitReached(!hasRemainingUses('calculator'));
+      setRemaining(getRemainingUses('calculator'));
+    }
+  }, [isPremium]);
 
   const calculate = async () => {
     if (!ticker.trim()) return;
+    if (!isPremium && !hasRemainingUses('calculator')) {
+      setLimitReached(true);
+      return;
+    }
     setLoading(true);
     setError("");
     setResult(null);
@@ -49,13 +66,28 @@ export function AcquisitionPremiumCalculator() {
       });
       const data = await res.json();
       if (data.error) setError(data.error);
-      else setResult(data as CalcResult);
+      else {
+        setResult(data as CalcResult);
+        if (!isPremium) {
+          incrementUsage('calculator');
+          setRemaining(getRemainingUses('calculator'));
+          setLimitReached(!hasRemainingUses('calculator'));
+        }
+      }
     } catch {
       setError("Calculation failed. Please try again.");
     } finally {
       setLoading(false);
     }
   };
+
+  if (!isPremium && limitReached) {
+    return (
+      <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6">
+        <UsageLimitBanner feature="calculator" />
+      </div>
+    );
+  }
 
   return (
     <PremiumGate label="Acquisition Premium Calculator — Premium Feature">
@@ -69,6 +101,12 @@ export function AcquisitionPremiumCalculator() {
         <p className="text-white/40 text-sm mb-6">
           Enter any stock ticker to see estimated acquisition value and strategic analysis
         </p>
+
+        {!isPremium && (
+          <p className="text-amber-400/70 text-xs mb-4">
+            Free tier: {remaining} calculation{remaining !== 1 ? 's' : ''} remaining today
+          </p>
+        )}
 
         <div className="flex gap-3 mb-6">
           <input

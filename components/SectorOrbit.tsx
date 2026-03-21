@@ -49,7 +49,21 @@ function slicePath(start: number, end: number, rOut: number, rIn: number): strin
   ].join(" ");
 }
 
-function matchesSector(article: Article, keywords: readonly string[]): boolean {
+function matchesSector(article: Article, sectorId: string, keywords: readonly string[]): boolean {
+  // First check the explicit sector field set by Groq
+  if (article.sector) {
+    const articleSector = article.sector.toLowerCase();
+    // Map sector IDs to their display names for comparison
+    const sectorLabel = sectorId.replace(/-/g, " ");
+    if (articleSector.includes(sectorLabel) || sectorLabel.includes(articleSector)) {
+      return true;
+    }
+    // Special case: "private equity" matches "private-equity"
+    if (sectorId === "private-equity" && (articleSector.includes("private equity") || articleSector.includes("private-equity"))) {
+      return true;
+    }
+  }
+  // Fall back to keyword matching
   const text = `${article.title} ${article.description ?? ""}`.toLowerCase();
   return keywords.some((kw) => text.includes(kw.toLowerCase()));
 }
@@ -84,7 +98,7 @@ export default function SectorOrbit({ articles }: { articles: Article[] }) {
             const endAngle = startAngle + segDeg;
             const midAngle = startAngle + segDeg / 2;
             const isHovered = hovered === sector.id;
-            const count = articles.filter((a) => matchesSector(a, sector.keywords)).length;
+            const count = articles.filter((a) => matchesSector(a, sector.id, sector.keywords)).length;
             const color = COLORS[i];
             const lines = LABEL_LINES[sector.id] ?? [sector.label];
             const [txText, tyText] = p2c(midAngle, R_TEXT);

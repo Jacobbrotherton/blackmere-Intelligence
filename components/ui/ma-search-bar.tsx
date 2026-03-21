@@ -1,8 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { ArrowUp, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { UsageLimitBanner } from "@/components/ui/usage-limit-banner";
+import { hasRemainingUses, incrementUsage, getRemainingUses } from "@/lib/daily-limits";
+import { useSubscription } from "@/lib/subscription-context";
 
 // ── Render markdown-like bold text ────────────────────────────────────────────
 function AnswerBody({ text }: { text: string }) {
@@ -36,15 +39,31 @@ const SUGGESTIONS = [
 ];
 
 export function MaSearchBar() {
+  const { isPremium } = useSubscription();
   const [query, setQuery] = useState("");
   const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState(false);
   const [asked, setAsked] = useState("");
+  const [limitReached, setLimitReached] = useState(false);
+  const [remaining, setRemaining] = useState(3);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (!isPremium) {
+      setLimitReached(!hasRemainingUses('askAnything'));
+      setRemaining(getRemainingUses('askAnything'));
+    }
+  }, [isPremium]);
 
   const submit = async (q = query) => {
     const trimmed = q.trim();
     if (!trimmed || loading) return;
+
+    if (!isPremium && !hasRemainingUses('askAnything')) {
+      setLimitReached(true);
+      return;
+    }
+
     setAsked(trimmed);
     setAnswer("");
     setLoading(true);
@@ -59,6 +78,12 @@ export function MaSearchBar() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Request failed");
       setAnswer(data.answer ?? "No answer returned.");
+
+      if (!isPremium) {
+        incrementUsage('askAnything');
+        setRemaining(getRemainingUses('askAnything'));
+        setLimitReached(!hasRemainingUses('askAnything'));
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "";
       setAnswer(
@@ -78,8 +103,18 @@ export function MaSearchBar() {
     }
   };
 
+  if (!isPremium && limitReached) {
+    return <UsageLimitBanner feature="AI search" />;
+  }
+
   return (
     <div className="w-full max-w-3xl mx-auto">
+
+      {!isPremium && (
+        <p className="text-amber-400/70 text-xs mb-3 text-center">
+          Free tier: {remaining} search{remaining !== 1 ? 'es' : ''} remaining today
+        </p>
+      )}
 
       {/* ── Search bar ──────────────────────────────────────────────────── */}
       <div className="relative">
@@ -204,7 +239,7 @@ export function MaSearchBar() {
               </span>
               {asked && (
                 <span className="ml-auto text-white/20 text-xs truncate max-w-[200px]">
-                  "{asked}"
+                  &ldquo;{asked}&rdquo;
                 </span>
               )}
             </div>
