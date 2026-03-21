@@ -9,6 +9,7 @@ import BriefingPrefetcher from "@/components/BriefingPrefetcher";
 import LandmarkDeals from "@/components/LandmarkDeals";
 import SearchBar from "@/components/SearchBar";
 import StockAnalysisNavButton from "@/components/StockAnalysisNavButton";
+import UpgradeNavButton from "@/components/UpgradeNavButton";
 
 export default async function Home() {
   const articles = await fetchMaNews();
@@ -28,10 +29,10 @@ export default async function Home() {
       <header className="bg-ft-cream border-b border-ft-border">
         <div className="max-w-screen-xl mx-auto px-6 py-5 text-center">
           <h1 className="font-display text-4xl font-bold tracking-tight text-ft-black leading-none">
-            M&amp;A DEAL TRACKER
+            BLACKMERE INTELLIGENCE
           </h1>
           <p className="text-xs text-ft-muted mt-1 tracking-widest">
-            MERGERS · ACQUISITIONS · DIVESTITURES
+            M&amp;A DEAL TRACKER · MERGERS · ACQUISITIONS · DIVESTITURES
           </p>
         </div>
       </header>
@@ -59,6 +60,7 @@ export default async function Home() {
           <div className="pl-4 py-1.5 flex-shrink-0 flex items-center gap-3">
             <SearchBar />
             <StockAnalysisNavButton />
+            <UpgradeNavButton />
           </div>
         </div>
       </nav>
@@ -92,7 +94,7 @@ export default async function Home() {
       <footer className="bg-ft-black text-gray-400 text-xs mt-0 px-6 py-8">
         <div className="max-w-screen-xl mx-auto flex flex-wrap gap-6 justify-between">
           <div>
-            <p className="font-display text-white text-lg mb-2">M&amp;A Deal Tracker</p>
+            <p className="font-display text-white text-lg mb-2">Blackmere Intelligence</p>
             <p>Live data via NewsAPI. News refreshes every 5 minutes.</p>
           </div>
           <div className="flex gap-8">

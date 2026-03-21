@@ -152,7 +152,7 @@ function openBriefingForLabel(label: string) {
         url: briefing.url,
         urlToImage: null,
         publishedAt: new Date().toISOString(),
-        source: { name: "M&A Deal Tracker", id: null },
+        source: { name: "Blackmere Intelligence", id: null },
         content: null,
       },
     })

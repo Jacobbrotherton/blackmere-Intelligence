@@ -9,6 +9,7 @@ import {
   formatDealValue,
 } from "@/lib/news";
 import type { BriefingResult, RelatedArticle } from "@/app/api/briefing/route";
+import { ArticleSummariseButton } from "@/components/ui/article-summarise-button";
 
 // ── Section parsing ────────────────────────────────────────────────────────────
 const SECTION_NAMES = [
@@ -218,8 +219,11 @@ export default function ArticleDrawer() {
               {article.title}
             </h2>
 
+            {/* ── AI Article Summariser ────────────────────────────────── */}
+            <ArticleSummariseButton articleTitle={article.title} articleUrl={article.url} />
+
             {/* ── Meta row ─────────────────────────────────────────────── */}
-            <div className="flex flex-wrap items-center gap-3 text-xs pb-5 border-b border-ft-border">
+            <div className="flex flex-wrap items-center gap-3 text-xs pb-5 border-b border-ft-border mt-3">
               <span className="bg-ft-teal text-white px-2 py-0.5 rounded-sm font-semibold">
                 {article.source.name}
               </span>
@@ -237,6 +241,12 @@ export default function ArticleDrawer() {
 
             {/* ── AI Briefing body ─────────────────────────────────────── */}
             <div className="mt-6">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-white bg-ft-black px-2.5 py-1 rounded-full">
+                  ⚡ Groq AI
+                </span>
+                <span className="text-ft-muted text-xs">AI-generated briefing</span>
+              </div>
               {loading && <Spinner />}
 
               {!loading && fetchError && (

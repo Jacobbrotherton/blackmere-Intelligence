@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { SubscriptionProvider } from "@/lib/subscription-context";
+import { AuthProvider } from "@/lib/auth-context";
+import { DealAnalystChat } from "@/components/ui/deal-analyst-chat";
 
 export const metadata: Metadata = {
-  title: "M&A Deal Tracker",
-  description: "Mergers · Acquisitions · Divestitures",
+  title: "Blackmere Intelligence | M&A Deal Tracker",
+  description: "Blackmere Intelligence — your premier source for M&A deal tracking, merger rumours, acquisition intelligence, and live dealflow analysis.",
 };
 
 export default function RootLayout({
@@ -24,7 +27,14 @@ export default function RootLayout({
         />
 
       </head>
-      <body className="font-sans text-ft-black">{children}</body>
+      <body className="font-sans text-ft-black">
+        <AuthProvider>
+          <SubscriptionProvider>
+            {children}
+            <DealAnalystChat />
+          </SubscriptionProvider>
+        </AuthProvider>
+      </body>
     </html>
   );
 }

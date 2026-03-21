@@ -3,27 +3,39 @@
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, BarChart2, AlertTriangle, Brain, ExternalLink, RefreshCw } from "lucide-react";
-import type { RumouredDeal } from "@/lib/rumoured-deals";
+import { ArrowLeft, BarChart2, AlertTriangle, Brain, ExternalLink, RefreshCw, Loader2 } from "lucide-react";
 import CompanyLogo from "@/components/ui/company-logo";
 
-interface CompanyData {
-  profile?: Record<string, unknown> | null;
-  quote?: Record<string, unknown> | null;
-  metrics?: Record<string, unknown> | null;
-  income?: Record<string, unknown>[] | null;
+interface Deal {
+  id: string;
+  acquirerName: string;
+  acquirerTicker: string;
+  targetName: string;
+  targetTicker: string;
+  estimatedValue: string;
+  summary: string;
+  source: string;
+  dateRumoured: string;
+  status: string;
+  dealType: string;
+  sector: string;
+  dealProbability?: number;
+}
+
+interface CompanyStats {
+  price: string;
+  marketCap: string;
+  peRatio: string;
+  evEbitda: string;
+  week52High: string;
+  week52Low: string;
+  description: string;
+  sector: string;
+  exchange: string;
 }
 
 interface Props {
-  deal: RumouredDeal;
-  acquirerData: CompanyData;
-  targetData: CompanyData;
-}
-
-interface AnalysisResult {
-  analysis: string;
-  sources: { title: string; source: string; url: string; publishedAt: string }[];
-  cached: boolean;
+  dealId: string;
 }
 
 // ── Render Groq markdown-like output ─────────────────────────────────────────
@@ -57,12 +69,12 @@ function AnalysisBody({ text }: { text: string }) {
   );
 }
 
-// ── AI analysis panel (client-side fetch) ────────────────────────────────────
-function AIAnalysisPanel({ deal }: { deal: RumouredDeal }) {
-  const [result, setResult] = useState<AnalysisResult | null>(null);
+// ── AI analysis panel ─────────────────────────────────────────────────────────
+function AIAnalysisPanel({ deal }: { deal: Deal }) {
+  const [analysis, setAnalysis] = useState<string | null>(null);
+  const [sources, setSources] = useState<{ title: string; source: string; url: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   const calledRef = useRef(false);
 
   const fetchAnalysis = async () => {
@@ -80,7 +92,8 @@ function AIAnalysisPanel({ deal }: { deal: RumouredDeal }) {
       if (!res.ok) throw new Error(`Analysis unavailable (${res.status})`);
       const data = await res.json();
       if (data.error) throw new Error(data.error);
-      setResult(data);
+      setAnalysis(data.analysis ?? "");
+      setSources(data.sources ?? []);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to generate analysis");
     } finally {
@@ -100,7 +113,7 @@ function AIAnalysisPanel({ deal }: { deal: RumouredDeal }) {
         <div className="flex items-center gap-2">
           <Brain size={18} className="text-indigo-400" />
           <span className="text-white font-semibold text-sm">AI Deal Intelligence Report</span>
-          <span className="text-xs text-white/30 ml-1">Groq · llama-3.3-70b · live sources</span>
+          <span className="text-xs text-white/30 ml-1">Groq · llama-3.3-70b</span>
         </div>
         {!loading && (
           <button
@@ -117,9 +130,7 @@ function AIAnalysisPanel({ deal }: { deal: RumouredDeal }) {
           <div className="space-y-3">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-              <span className="text-white/40 text-sm">
-                Searching news sources and generating institutional analysis…
-              </span>
+              <span className="text-white/40 text-sm">Generating institutional analysis…</span>
             </div>
             {[...Array(7)].map((_, i) => (
               <div key={i} className="space-y-2">
@@ -134,34 +145,25 @@ function AIAnalysisPanel({ deal }: { deal: RumouredDeal }) {
         {error && !loading && (
           <div className="text-center py-8">
             <p className="text-red-400 text-sm mb-3">{error}</p>
-            <button onClick={fetchAnalysis} className="text-xs text-indigo-400 hover:underline">
-              Try again
-            </button>
+            <button onClick={fetchAnalysis} className="text-xs text-indigo-400 hover:underline">Try again</button>
           </div>
         )}
 
-        {result && !loading && (
+        {analysis && !loading && (
           <>
-            <AnalysisBody text={result.analysis} />
-            {result.sources.length > 0 && (
+            <AnalysisBody text={analysis} />
+            {sources.length > 0 && (
               <div className="mt-8 pt-6 border-t border-white/[0.06]">
                 <p className="text-white/30 text-xs font-semibold tracking-widest uppercase mb-4">
-                  {result.sources.length} sources referenced
+                  {sources.length} sources referenced
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {result.sources.slice(0, 8).map((s, i) => (
-                    <a
-                      key={i}
-                      href={s.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-start gap-2 group p-2 rounded-lg hover:bg-white/[0.03] transition-colors"
-                    >
-                      <ExternalLink size={11} className="text-indigo-400 mt-0.5 flex-shrink-0 group-hover:text-indigo-300" />
+                  {sources.slice(0, 8).map((s, i) => (
+                    <a key={i} href={s.url} target="_blank" rel="noopener noreferrer"
+                      className="flex items-start gap-2 group p-2 rounded-lg hover:bg-white/[0.03] transition-colors">
+                      <ExternalLink size={11} className="text-indigo-400 mt-0.5 flex-shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-white/50 text-xs leading-snug line-clamp-2 group-hover:text-white/70 transition-colors">
-                          {s.title}
-                        </p>
+                        <p className="text-white/50 text-xs leading-snug line-clamp-2 group-hover:text-white/70 transition-colors">{s.title}</p>
                         <p className="text-white/20 text-[10px] mt-0.5">{s.source}</p>
                       </div>
                     </a>
@@ -170,7 +172,7 @@ function AIAnalysisPanel({ deal }: { deal: RumouredDeal }) {
               </div>
             )}
             <p className="mt-6 text-white/20 text-xs italic">
-              {result.cached ? "⚡ Cached result" : "✦ Freshly generated"} · AI analysis may contain inaccuracies. Not financial advice.
+              ✦ AI analysis may contain inaccuracies. Not financial advice.
             </p>
           </>
         )}
@@ -179,7 +181,7 @@ function AIAnalysisPanel({ deal }: { deal: RumouredDeal }) {
   );
 }
 
-// ── Market data ───────────────────────────────────────────────────────────────
+// ── Groq-powered company panel ────────────────────────────────────────────────
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4">
@@ -189,19 +191,17 @@ function StatCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function CompanyPanel({ data, name, ticker }: {
-  data: CompanyData;
-  name: string;
-  ticker: string;
-}) {
-  const q = data.quote as Record<string, number> | null | undefined;
-  const m = data.metrics as Record<string, number> | null | undefined;
-  const p = data.profile as Record<string, unknown> | null | undefined;
+function CompanyPanel({ name, ticker }: { name: string; ticker: string }) {
+  const [stats, setStats] = useState<CompanyStats | null>(null);
+  const [loading, setLoading] = useState(ticker !== "PRIVATE");
 
-  const fmt = (n?: number) =>
-    n != null ? n.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—";
-  const fmtB = (n?: number) =>
-    n != null ? `$${(n / 1e9).toFixed(2)}B` : "—";
+  useEffect(() => {
+    if (ticker === "PRIVATE") return;
+    fetch(`/api/company-data?ticker=${ticker}&name=${encodeURIComponent(name)}`)
+      .then(r => r.json())
+      .then(d => { setStats(d); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [ticker, name]);
 
   return (
     <div className="bg-white/[0.02] border border-white/[0.08] rounded-2xl p-6">
@@ -210,46 +210,85 @@ function CompanyPanel({ data, name, ticker }: {
         <div>
           <h3 className="text-white font-bold text-xl">{name}</h3>
           <p className="text-white/40 text-sm">
-            {ticker} {typeof p?.exchange === "string" && p.exchange ? `· ${p.exchange}` : ""}
+            {ticker}{stats?.exchange ? ` · ${stats.exchange}` : ""}
           </p>
         </div>
-        {q?.price != null && (
+        {stats?.price && (
           <div className="ml-auto text-right">
-            <p className="text-white font-bold text-2xl">${fmt(q.price)}</p>
-            <p className={`text-sm font-medium ${(q.changesPercentage ?? 0) >= 0 ? "text-green-400" : "text-red-400"}`}>
-              {(q.changesPercentage ?? 0) >= 0 ? "▲" : "▼"} {Math.abs(q.changesPercentage ?? 0).toFixed(2)}%
-            </p>
+            <p className="text-white font-bold text-2xl">{stats.price}</p>
+            <p className="text-white/40 text-sm">{stats.sector}</p>
           </div>
         )}
       </div>
 
-      {typeof p?.description === "string" && p.description && (
-        <p className="text-white/40 text-sm leading-relaxed mb-6 line-clamp-3">{p.description}</p>
+      {stats?.description && (
+        <p className="text-white/40 text-sm leading-relaxed mb-6 line-clamp-3">{stats.description}</p>
       )}
 
-      {q ? (
-        <div className="grid grid-cols-2 gap-3">
-          <StatCard label="Market Cap" value={fmtB(q.marketCap)} />
-          <StatCard label="P/E Ratio" value={fmt(q.pe)} />
-          <StatCard label="EV / EBITDA" value={fmt(m?.enterpriseValueOverEBITDA)} />
-          <StatCard label="52w High" value={`$${fmt(q.yearHigh)}`} />
-          <StatCard label="52w Low" value={`$${fmt(q.yearLow)}`} />
-          <StatCard label="Avg Volume" value={q.avgVolume != null ? `${(q.avgVolume / 1e6).toFixed(1)}M` : "—"} />
+      {loading && (
+        <div className="flex items-center gap-2 text-white/30 text-sm">
+          <Loader2 size={14} className="animate-spin" /> Fetching data…
         </div>
-      ) : (
-        <p className="text-white/30 text-sm italic">
-          {ticker === "PRIVATE"
-            ? "Private company — no public market data available."
-            : "Live data loading…"}
-        </p>
+      )}
+
+      {!loading && ticker === "PRIVATE" && (
+        <p className="text-white/30 text-sm italic">Private company — no public market data available.</p>
+      )}
+
+      {!loading && stats && (
+        <div className="grid grid-cols-2 gap-3">
+          <StatCard label="Market Cap" value={stats.marketCap} />
+          <StatCard label="P/E Ratio" value={stats.peRatio} />
+          <StatCard label="EV / EBITDA" value={stats.evEbitda} />
+          <StatCard label="52w High" value={stats.week52High} />
+          <StatCard label="52w Low" value={stats.week52Low} />
+          <StatCard label="Sector" value={stats.sector} />
+        </div>
+      )}
+
+      {!loading && !stats && ticker !== "PRIVATE" && (
+        <p className="text-white/30 text-sm italic">Could not load market data.</p>
       )}
     </div>
   );
 }
 
 // ── Page root ─────────────────────────────────────────────────────────────────
-export default function DealDetailClient({ deal, acquirerData, targetData }: Props) {
+export default function DealDetailClient({ dealId }: Props) {
   const router = useRouter();
+  const [deal, setDeal] = useState<Deal | null>(null);
+  const [notFound, setNotFound] = useState(false);
+
+  useEffect(() => {
+    // Look up deal from the live Groq-generated deals cache
+    fetch("/api/refresh-deals")
+      .then(r => r.json())
+      .then(data => {
+        const found = (data.deals as Deal[])?.find((d) => d.id === dealId);
+        if (found) setDeal(found);
+        else setNotFound(true);
+      })
+      .catch(() => setNotFound(true));
+  }, [dealId]);
+
+  if (notFound) {
+    return (
+      <div className="min-h-screen bg-[#030303] flex items-center justify-center text-white">
+        <div className="text-center">
+          <p className="text-white/40 mb-4">Deal not found.</p>
+          <button onClick={() => router.back()} className="text-indigo-400 hover:underline text-sm">← Go back</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!deal) {
+    return (
+      <div className="min-h-screen bg-[#030303] flex items-center justify-center">
+        <Loader2 size={24} className="animate-spin text-white/30" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#030303] text-white">
@@ -298,6 +337,12 @@ export default function DealDetailClient({ deal, acquirerData, targetData }: Pro
               <p className="text-white/30 text-xs uppercase tracking-wider">Source</p>
               <p className="text-white text-xl font-semibold">{deal.source}</p>
             </div>
+            {deal.dealProbability && (
+              <div>
+                <p className="text-white/30 text-xs uppercase tracking-wider">Deal Probability</p>
+                <p className="text-indigo-300 text-xl font-semibold">{deal.dealProbability}%</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -325,23 +370,15 @@ export default function DealDetailClient({ deal, acquirerData, targetData }: Pro
           <AIAnalysisPanel deal={deal} />
         </motion.section>
 
-        {/* Live market data */}
+        {/* Company data — Groq powered */}
         <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-            <BarChart2 size={20} className="text-indigo-400" /> Live Market Data
-            <span className="text-xs text-white/30 font-normal ml-2">via Financial Modeling Prep</span>
+            <BarChart2 size={20} className="text-indigo-400" /> Market Data
+            <span className="text-xs text-white/30 font-normal ml-2">⚡ Groq AI</span>
           </h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <CompanyPanel
-              data={acquirerData}
-              name={deal.acquirerName}
-              ticker={deal.acquirerTicker}
-            />
-            <CompanyPanel
-              data={targetData}
-              name={deal.targetName}
-              ticker={deal.targetTicker}
-            />
+            <CompanyPanel name={deal.acquirerName} ticker={deal.acquirerTicker} />
+            <CompanyPanel name={deal.targetName} ticker={deal.targetTicker} />
           </div>
         </motion.section>
 

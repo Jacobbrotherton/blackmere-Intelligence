@@ -200,7 +200,7 @@ export function MaSearchBar() {
                 }}
               />
               <span className="text-white/40 text-xs tracking-wide">
-                {loading ? "Researching…" : "M&A Intelligence"}
+                {loading ? "Researching…" : "Blackmere Intelligence"}
               </span>
               {asked && (
                 <span className="ml-auto text-white/20 text-xs truncate max-w-[200px]">
