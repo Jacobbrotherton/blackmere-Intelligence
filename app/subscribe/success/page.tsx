@@ -1,11 +1,11 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { CheckCircle, Loader2 } from "lucide-react";
 import { useSubscription } from "@/lib/subscription-context";
 
-export default function SuccessPage() {
+function SuccessContent() {
   const router = useRouter();
   const { checkSubscription, email } = useSubscription();
   const searchParams = useSearchParams();
@@ -63,5 +63,13 @@ export default function SuccessPage() {
         )}
       </motion.div>
     </div>
+  );
+}
+
+export default function SuccessPage() {
+  return (
+    <Suspense>
+      <SuccessContent />
+    </Suspense>
   );
 }

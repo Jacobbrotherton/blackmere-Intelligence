@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { motion } from "framer-motion";
 import { Check, X, Zap, Crown, Loader2 } from "lucide-react";
 import { useSubscription } from "@/lib/subscription-context";
@@ -44,7 +44,7 @@ const PREMIUM_FEATURES = [
   "Priority access to new features",
 ];
 
-export default function SubscribePage() {
+function SubscribeContent() {
   const { isPremium, email, setEmail, checkSubscription } = useSubscription();
   const searchParams = useSearchParams();
   const cancelled = searchParams.get("cancelled");
@@ -287,5 +287,13 @@ export default function SubscribePage() {
         </motion.div>
       </div>
     </div>
+  );
+}
+
+export default function SubscribePage() {
+  return (
+    <Suspense>
+      <SubscribeContent />
+    </Suspense>
   );
 }
