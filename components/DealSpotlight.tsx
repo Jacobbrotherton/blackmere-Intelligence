@@ -39,7 +39,7 @@ function PrimaryCard({ article }: { article: Article }) {
     >
       <div className="overflow-hidden h-56 mb-4 w-full">
         <SpotlightImage
-          src={article.urlToImage}
+          src={article.urlToImage ?? null}
           alt={article.title}
           sector={sector}
           className="transition-transform duration-500 group-hover:scale-[1.02]"
@@ -84,7 +84,7 @@ function SecondaryCard({ article }: { article: Article }) {
     >
       <div className="overflow-hidden h-40 mb-4 w-full">
         <SpotlightImage
-          src={article.urlToImage}
+          src={article.urlToImage ?? null}
           alt={article.title}
           sector={sector}
           className="transition-transform duration-500 group-hover:scale-[1.02]"

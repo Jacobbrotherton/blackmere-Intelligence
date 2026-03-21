@@ -139,6 +139,25 @@ export default function NewsSection({ excludeUrls }: { excludeUrls?: string[] })
                   {article.title}
                 </p>
               </button>
+              {(article.sector || article.dealValue || article.acquirer) && (
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {article.sector && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-ft-border text-ft-muted font-medium">
+                      {article.sector}
+                    </span>
+                  )}
+                  {article.dealValue && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-ft-border text-ft-teal font-semibold">
+                      {article.dealValue}
+                    </span>
+                  )}
+                  {article.acquirer && article.target && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-ft-border text-ft-muted">
+                      {article.acquirer} → {article.target}
+                    </span>
+                  )}
+                </div>
+              )}
               <p className="text-xs text-ft-muted mt-0.5">
                 {timeAgo(article.publishedAt)}
               </p>

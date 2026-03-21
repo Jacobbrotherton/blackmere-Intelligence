@@ -2,9 +2,13 @@ export interface Article {
   title: string;
   description: string | null;
   url: string;
-  urlToImage: string | null;
+  urlToImage?: string | null;
   publishedAt: string;
   source: { name: string };
+  sector?: string;
+  dealValue?: string;
+  acquirer?: string;
+  target?: string;
 }
 
 const MA_KEYWORDS = [
