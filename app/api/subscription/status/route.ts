@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ isPremium: false });
   }
 
-  const record = getSubscription(email);
+  const record = await getSubscription(email);
 
   if (!record) {
     return NextResponse.json({ isPremium: false });

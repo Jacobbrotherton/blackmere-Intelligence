@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       const priceId = subscription.items.data[0]?.price.id;
       const isAnnual = priceId === process.env.STRIPE_ANNUAL_PRICE_ID;
 
-      saveSubscription(email, {
+      await saveSubscription(email, {
         email,
         customerId,
         subscriptionId,
@@ -64,20 +64,20 @@ export async function POST(req: NextRequest) {
 
     case "invoice.payment_succeeded": {
       const invoice = event.data.object as Stripe.Invoice;
-      updateSubscriptionStatus(invoice.customer as string, "active");
+      await updateSubscriptionStatus(invoice.customer as string, "active");
       break;
     }
 
     case "invoice.payment_failed": {
       const invoice = event.data.object as Stripe.Invoice;
-      updateSubscriptionStatus(invoice.customer as string, "past_due");
+      await updateSubscriptionStatus(invoice.customer as string, "past_due");
       console.log(`[webhook] Payment failed for customer ${invoice.customer}`);
       break;
     }
 
     case "customer.subscription.deleted": {
       const subscription = event.data.object as Stripe.Subscription;
-      updateSubscriptionStatus(subscription.customer as string, "cancelled");
+      await updateSubscriptionStatus(subscription.customer as string, "cancelled");
       console.log(`[webhook] Subscription cancelled for ${subscription.customer}`);
       break;
     }
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     case "customer.subscription.updated": {
       const subscription = event.data.object as Stripe.Subscription;
       const status = subscription.status === "active" ? "active" : "past_due";
-      updateSubscriptionStatus(subscription.customer as string, status);
+      await updateSubscriptionStatus(subscription.customer as string, status);
       break;
     }
 

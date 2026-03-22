@@ -1,6 +1,8 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { supabase } from "@/lib/supabase";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 export interface User {
   id: string;
@@ -19,24 +21,13 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const STORAGE_KEY = "blackmere_user";
-const ACCOUNTS_KEY = "blackmere_accounts";
-
-interface StoredAccount {
-  id: string;
-  name: string;
-  email: string;
-  passwordHash: string;
-  createdAt: string;
-}
-
-// Simple deterministic hash — good enough for a simulated auth system
-function simpleHash(str: string): string {
-  let hash = 5381;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) + hash) ^ str.charCodeAt(i);
-  }
-  return Math.abs(hash).toString(36);
+function toUser(su: SupabaseUser): User {
+  return {
+    id: su.id,
+    name: (su.user_metadata?.name as string) ?? su.email?.split("@")[0] ?? "User",
+    email: su.email ?? "",
+    createdAt: su.created_at,
+  };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -44,37 +35,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) setUser(JSON.parse(stored));
-    } catch {
-      // ignore
-    }
-    setIsLoading(false);
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ? toUser(session.user) : null);
+      setIsLoading(false);
+    });
+
+    // Listen for auth state changes (login, logout, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ? toUser(session.user) : null);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const getAccounts = (): StoredAccount[] => {
-    try {
-      const raw = localStorage.getItem(ACCOUNTS_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  };
-
-  const saveAccounts = (accounts: StoredAccount[]) => {
-    localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
-  };
-
   const login = async (email: string, password: string): Promise<{ error?: string }> => {
-    const accounts = getAccounts();
-    const account = accounts.find((a) => a.email.toLowerCase() === email.toLowerCase());
-    if (!account) return { error: "No account found with that email." };
-    if (account.passwordHash !== simpleHash(password)) return { error: "Incorrect password." };
-
-    const u: User = { id: account.id, name: account.name, email: account.email, createdAt: account.createdAt };
-    setUser(u);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { error: error.message };
     return {};
   };
 
@@ -83,30 +60,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!email.includes("@")) return { error: "Enter a valid email address." };
     if (password.length < 6) return { error: "Password must be at least 6 characters." };
 
-    const accounts = getAccounts();
-    if (accounts.find((a) => a.email.toLowerCase() === email.toLowerCase())) {
-      return { error: "An account with that email already exists." };
-    }
-
-    const newAccount: StoredAccount = {
-      id: crypto.randomUUID(),
-      name: name.trim(),
-      email: email.toLowerCase(),
-      passwordHash: simpleHash(password),
-      createdAt: new Date().toISOString(),
-    };
-
-    saveAccounts([...accounts, newAccount]);
-
-    const u: User = { id: newAccount.id, name: newAccount.name, email: newAccount.email, createdAt: newAccount.createdAt };
-    setUser(u);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { name: name.trim() } },
+    });
+    if (error) return { error: error.message };
     return {};
   };
 
   const logout = () => {
-    setUser(null);
-    localStorage.removeItem(STORAGE_KEY);
+    supabase.auth.signOut();
   };
 
   return (

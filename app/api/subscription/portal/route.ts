@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Email required" }, { status: 400 });
     }
 
-    const record = getSubscription(email);
+    const record = await getSubscription(email);
 
     if (!record) {
       return NextResponse.json(

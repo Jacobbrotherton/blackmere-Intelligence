@@ -1,5 +1,4 @@
-// In-memory store — resets on server restart
-// Replace with Supabase/Postgres in production
+import { createAdminClient } from "@/lib/supabase";
 
 export interface SubscriptionRecord {
   email: string;
@@ -11,33 +10,58 @@ export interface SubscriptionRecord {
   createdAt: number;
 }
 
-const store = new Map<string, SubscriptionRecord>();
-
-export function saveSubscription(email: string, record: SubscriptionRecord) {
-  store.set(email.toLowerCase(), record);
+export async function saveSubscription(email: string, record: SubscriptionRecord) {
+  const supabase = createAdminClient();
+  const { error } = await supabase.from("subscriptions").upsert({
+    email: email.toLowerCase(),
+    customer_id: record.customerId,
+    subscription_id: record.subscriptionId,
+    plan: record.plan,
+    status: record.status,
+    current_period_end: record.currentPeriodEnd,
+    created_at: record.createdAt,
+  });
+  if (error) console.error("[subscription-store] saveSubscription:", error.message);
 }
 
-export function getSubscription(email: string): SubscriptionRecord | null {
-  return store.get(email.toLowerCase()) ?? null;
+export async function getSubscription(email: string): Promise<SubscriptionRecord | null> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("subscriptions")
+    .select("*")
+    .eq("email", email.toLowerCase())
+    .single();
+
+  if (error || !data) return null;
+
+  return {
+    email: data.email,
+    customerId: data.customer_id,
+    subscriptionId: data.subscription_id,
+    plan: data.plan,
+    status: data.status,
+    currentPeriodEnd: data.current_period_end,
+    createdAt: data.created_at,
+  };
 }
 
-export function updateSubscriptionStatus(
+export async function updateSubscriptionStatus(
   customerId: string,
   status: SubscriptionRecord["status"]
 ) {
-  for (const [email, record] of Array.from(store.entries())) {
-    if (record.customerId === customerId) {
-      store.set(email, { ...record, status });
-      return;
-    }
-  }
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("subscriptions")
+    .update({ status })
+    .eq("customer_id", customerId);
+  if (error) console.error("[subscription-store] updateSubscriptionStatus:", error.message);
 }
 
-export function deleteSubscription(customerId: string) {
-  for (const [email, record] of Array.from(store.entries())) {
-    if (record.customerId === customerId) {
-      store.delete(email);
-      return;
-    }
-  }
+export async function deleteSubscription(customerId: string) {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("subscriptions")
+    .delete()
+    .eq("customer_id", customerId);
+  if (error) console.error("[subscription-store] deleteSubscription:", error.message);
 }

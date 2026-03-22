@@ -1,5 +1,6 @@
 "use client";
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { supabase } from "@/lib/supabase";
 
 type Plan = "free" | "premium";
 
@@ -23,19 +24,6 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [freeSearchesUsed, setFreeSearchesUsed] = useState(0);
   const FREE_SEARCH_LIMIT = 3;
 
-  // On mount, check localStorage for saved email and verify subscription
-  useEffect(() => {
-    const savedEmail = localStorage.getItem("blackmere_email");
-    if (savedEmail) {
-      checkSubscription(savedEmail);
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const setEmail = (newEmail: string) => {
-    setEmailState(newEmail);
-    localStorage.setItem("blackmere_email", newEmail);
-  };
-
   const checkSubscription = async (emailToCheck: string) => {
     try {
       const res = await fetch(
@@ -49,6 +37,36 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     } catch {
       // Silently fail — user stays on free plan
     }
+  };
+
+  useEffect(() => {
+    // Check subscription whenever Supabase auth session changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const sessionEmail = session?.user?.email;
+      if (sessionEmail) {
+        setEmailState(sessionEmail);
+        checkSubscription(sessionEmail);
+      } else {
+        setEmailState(null);
+        setPlan("free");
+      }
+    });
+
+    // Also check on first load
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const sessionEmail = session?.user?.email;
+      if (sessionEmail) {
+        setEmailState(sessionEmail);
+        checkSubscription(sessionEmail);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const setEmail = (newEmail: string) => {
+    setEmailState(newEmail);
+    checkSubscription(newEmail);
   };
 
   return (
