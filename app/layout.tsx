@@ -38,14 +38,6 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true, "max-snippet": -1, "max-image-preview": "large" },
   },
   alternates: { canonical: BASE_URL },
-  icons: {
-    icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/logo.png", type: "image/png" },
-    ],
-    apple: "/apple-touch-icon.png",
-    shortcut: "/favicon.ico",
-  },
   openGraph: {
     type: "website",
     url: BASE_URL,
@@ -53,7 +45,7 @@ export const metadata: Metadata = {
     title: "Blackmere Intelligence | M&A Deal Tracker",
     description:
       "Live M&A intelligence — mergers, acquisitions and divestitures tracked in real time across six global sectors.",
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Blackmere Intelligence" }],
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "Blackmere Intelligence" }],
   },
   twitter: {
     card: "summary_large_image",
@@ -61,7 +53,7 @@ export const metadata: Metadata = {
     title: "Blackmere Intelligence | M&A Deal Tracker",
     description:
       "Live M&A intelligence — mergers, acquisitions and divestitures tracked in real time.",
-    images: ["/og-image.png"],
+    images: ["/opengraph-image"],
   },
 };
 
