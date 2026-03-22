@@ -1,9 +1,9 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { ArrowUp, Zap } from "lucide-react";
+import { ArrowUp, Zap, Lock } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { DailyLimitBanner } from "@/components/ui/DailyLimitBanner";
 import { hasUsesRemaining, consumeUse, getRemainingUses } from "@/lib/daily-limits";
 import { useSubscription } from "@/lib/subscription-context";
 
@@ -40,6 +40,7 @@ const SUGGESTIONS = [
 
 export function MaSearchBar() {
   const { isPremium } = useSubscription();
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState(false);
@@ -103,91 +104,99 @@ export function MaSearchBar() {
     }
   };
 
-  if (!isPremium && limitReached) {
-    return (
-      <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6">
-        <DailyLimitBanner feature="AI search" />
-      </div>
-    );
-  }
-
   return (
     <div className="w-full max-w-3xl mx-auto">
 
-      {!isPremium && (
-        <p className="text-amber-400/70 text-xs mb-3 text-center">
-          Free tier: {remaining} of 1 free search remaining today
-        </p>
-      )}
+      {/* ── Search bar OR locked input ──────────────────────────────────── */}
+      {!isPremium && limitReached ? (
+        <div className="flex items-center justify-between gap-4 bg-zinc-800 border border-zinc-700 rounded-2xl p-4 mb-2">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-amber-500/10 rounded-full flex items-center justify-center flex-shrink-0">
+              <Lock size={14} className="text-amber-400" />
+            </div>
+            <div>
+              <p className="text-white/70 text-sm font-medium">Daily free search used</p>
+              <p className="text-white/30 text-xs">Resets at midnight · Upgrade for unlimited</p>
+            </div>
+          </div>
+          <button
+            onClick={() => router.push('/subscribe')}
+            className="px-4 py-2 rounded-lg font-bold text-xs bg-white text-[#030303] hover:bg-white/90 transition-all whitespace-nowrap flex-shrink-0"
+          >
+            Upgrade — £6.99/mo
+          </button>
+        </div>
+      ) : (
+        <>
+          {!isPremium && remaining > 0 && (
+            <p className="text-amber-400/70 text-xs mb-3 text-center">
+              Free tier: {remaining} of 1 free search remaining today
+            </p>
+          )}
 
-      {/* ── Search bar ──────────────────────────────────────────────────── */}
-      <div className="relative">
-        {/* Glow blobs */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -bottom-3 left-[5%] w-[38%] h-16 rounded-full opacity-70 blur-2xl"
-          style={{ background: "radial-gradient(ellipse, #84cc16 0%, transparent 70%)" }}
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -bottom-3 right-[5%] w-[38%] h-16 rounded-full opacity-70 blur-2xl"
-          style={{ background: "radial-gradient(ellipse, #3b82f6 0%, transparent 70%)" }}
-        />
+          <div className="relative">
+            {/* Glow blobs */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -bottom-3 left-[5%] w-[38%] h-16 rounded-full opacity-70 blur-2xl"
+              style={{ background: "radial-gradient(ellipse, #84cc16 0%, transparent 70%)" }}
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -bottom-3 right-[5%] w-[38%] h-16 rounded-full opacity-70 blur-2xl"
+              style={{ background: "radial-gradient(ellipse, #3b82f6 0%, transparent 70%)" }}
+            />
 
-        {/* Input container */}
-        <div
-          className="relative rounded-2xl overflow-hidden"
-          style={{
-            background: "#0e0e0e",
-            boxShadow:
-              "-24px 8px 60px rgba(132, 204, 22, 0.18), 24px 8px 60px rgba(59, 130, 246, 0.18), inset 0 0 0 1px rgba(255,255,255,0.07)",
-          }}
-        >
-          {/* Textarea */}
-          <textarea
-            ref={inputRef}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={handleKey}
-            placeholder="Ask about any M&A deal, rumour, or company…"
-            rows={1}
-            className="w-full bg-transparent px-5 pt-4 pb-2 text-white/90 placeholder-white/30 text-sm resize-none outline-none leading-relaxed"
-            style={{ minHeight: "52px", maxHeight: "160px", overflowY: "auto", fieldSizing: "content" } as React.CSSProperties}
-          />
-
-          {/* Toolbar row */}
-          <div className="flex items-center gap-2 px-3 pb-3 pt-1">
-            <button
-              type="button"
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-white/30 hover:text-white/60 hover:bg-white/[0.06] transition-colors text-xs"
-            >
-              <Zap size={11} />
-              M&amp;A Focus
-            </button>
-
-            <div className="flex-1" />
-
-            <span className="text-[11px] text-white/20 mr-1">Groq · Llama 3.3</span>
-
-            <button
-              type="button"
-              onClick={() => submit()}
-              disabled={!query.trim() || loading}
-              className="flex items-center justify-center w-7 h-7 rounded-lg transition-colors disabled:opacity-30"
+            {/* Input container */}
+            <div
+              className="relative rounded-2xl overflow-hidden"
               style={{
-                background: query.trim() && !loading
-                  ? "linear-gradient(135deg, #84cc16, #3b82f6)"
-                  : "rgba(255,255,255,0.06)",
+                background: "#0e0e0e",
+                boxShadow:
+                  "-24px 8px 60px rgba(132, 204, 22, 0.18), 24px 8px 60px rgba(59, 130, 246, 0.18), inset 0 0 0 1px rgba(255,255,255,0.07)",
               }}
             >
-              {loading
-                ? <div className="w-3 h-3 border border-white/40 border-t-white/80 rounded-full animate-spin" />
-                : <ArrowUp size={13} className="text-white" />
-              }
-            </button>
+              <textarea
+                ref={inputRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={handleKey}
+                placeholder="Ask about any M&A deal, rumour, or company…"
+                rows={1}
+                className="w-full bg-transparent px-5 pt-4 pb-2 text-white/90 placeholder-white/30 text-sm resize-none outline-none leading-relaxed"
+                style={{ minHeight: "52px", maxHeight: "160px", overflowY: "auto", fieldSizing: "content" } as React.CSSProperties}
+              />
+              <div className="flex items-center gap-2 px-3 pb-3 pt-1">
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-white/30 hover:text-white/60 hover:bg-white/[0.06] transition-colors text-xs"
+                >
+                  <Zap size={11} />
+                  M&amp;A Focus
+                </button>
+                <div className="flex-1" />
+                <span className="text-[11px] text-white/20 mr-1">Groq · Llama 3.3</span>
+                <button
+                  type="button"
+                  onClick={() => submit()}
+                  disabled={!query.trim() || loading}
+                  className="flex items-center justify-center w-7 h-7 rounded-lg transition-colors disabled:opacity-30"
+                  style={{
+                    background: query.trim() && !loading
+                      ? "linear-gradient(135deg, #84cc16, #3b82f6)"
+                      : "rgba(255,255,255,0.06)",
+                  }}
+                >
+                  {loading
+                    ? <div className="w-3 h-3 border border-white/40 border-t-white/80 rounded-full animate-spin" />
+                    : <ArrowUp size={13} className="text-white" />
+                  }
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
 
       {/* ── Suggestions (shown before first search) ───────────────────── */}
       <AnimatePresence>

@@ -196,6 +196,23 @@ let _cachedArticles: Article[] = [];
 let _lastFetched = 0;
 const CACHE_MS = 2 * 60 * 60 * 1000; // 2 hours
 
+/** Parse a raw Groq response string into an Article array, or return [] on failure */
+function parseGroqResponse(raw: string): Article[] {
+  try {
+    let jsonStr = raw.trim().replace(/```json\s*/gi, "").replace(/```\s*/gi, "").trim();
+    const start = jsonStr.indexOf("[");
+    const end = jsonStr.lastIndexOf("]");
+    if (start === -1 || end === -1) return [];
+    jsonStr = jsonStr.substring(start, end + 1);
+    const parsed = JSON.parse(jsonStr);
+    if (!Array.isArray(parsed)) return [];
+    return parsed as Article[];
+  } catch {
+    return [];
+  }
+}
+
+
 export async function fetchMaNews(): Promise<Article[]> {
   const now = Date.now();
 
@@ -219,75 +236,74 @@ export async function fetchMaNews(): Promise<Article[]> {
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
     const today = new Date().toISOString().split('T')[0];
 
-    const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      messages: [
-        {
-          role: "system",
-          content: `You are an M&A news journalist. Generate realistic, current M&A news articles.
-Return ONLY a valid JSON array. No markdown. No backticks. Just raw JSON starting with [.`,
-        },
-        {
-          role: "user",
-          content: `Generate exactly 80 realistic M&A news articles from the last 14 days. Today is ${today}.
+    const SYSTEM = `You are an M&A news journalist. Generate realistic, current M&A news articles.
+Return ONLY a valid JSON array. No markdown. No backticks. Just raw JSON starting with [.`;
 
-Distribute them across sectors as follows (MINIMUM per sector):
-- 20 Technology deals (AI, software, semiconductors, cloud, cybersecurity, SaaS)
-- 15 Healthcare deals (pharma, biotech, medical devices, life sciences)
-- 15 Financials deals (banking, insurance, asset management, fintech, payments)
-- 10 Private Equity deals (LBO, leveraged buyouts, take-private, growth equity)
-- 8 Energy deals (oil, gas, renewables, solar, wind, mining, LNG)
-- 8 Industrials deals (manufacturing, aerospace, defense, logistics, construction)
-- 4 other sectors (Consumer, Media, Real Estate, Retail)
+    // Split into 2 parallel calls — smaller = more reliable JSON output
+    const [res1, res2] = await Promise.allSettled([
+      groq.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          { role: "system", content: SYSTEM },
+          {
+            role: "user",
+            content: `Generate exactly 40 realistic M&A articles from the last 14 days. Today is ${today}.
 
-CRITICAL RULES:
-- Every deal must involve completely different company names — no repeats across all 80
-- No two articles can have the same acquirer AND target combination
-- No duplicate headlines
-- Every deal must be unique with realistic, specific company names and deal values
-- Include specific dollar/pound/euro amounts in every deal
-- Use varied sources: Bloomberg, Reuters, WSJ, Financial Times, CNBC, Forbes, S&P Global
-- Vary deal sizes from $200M to $50B realistically
-- Use today's date context — make deals feel current and believable
+Sectors (MUST hit these minimums):
+- 20 Technology (AI, software, semiconductors, cloud, cybersecurity, SaaS)
+- 12 Healthcare (pharma, biotech, medical devices, life sciences)
+- 8 Financials (banking, insurance, asset management, fintech)
 
-Return ONLY a JSON array where each object has exactly these fields:
-{
-  "title": "Compelling headline including company names and deal value",
-  "description": "2-3 sentence summary with key financial details and strategic rationale",
-  "url": "https://example.com/article-${Date.now()}-1",
-  "publishedAt": "2026-03-15T10:00:00Z",
-  "source": { "name": "Bloomberg" },
-  "sector": "Technology",
-  "dealValue": "$5.2B",
-  "acquirer": "Company Name",
-  "target": "Target Company Name"
-}
+RULES: Only PENDING or recently ANNOUNCED deals (not closed). Unique company names throughout. Specific deal values. Varied sources (Bloomberg, Reuters, WSJ, FT, CNBC).
 
-Return ONLY the JSON array. No markdown, no backticks, no explanation.`,
-        },
-      ],
-      temperature: 0.8,
-      max_tokens: 12000,
-    });
+Return ONLY a JSON array, each item: {"title":"...","description":"...","url":"https://example.com/a1-${now}-INDEX","publishedAt":"${today}T09:00:00Z","source":{"name":"Bloomberg"},"sector":"Technology","dealValue":"$3.2B","acquirer":"Company A","target":"Company B"}`,
+          },
+        ],
+        temperature: 0.8,
+        max_tokens: 8000,
+      }),
+      groq.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          { role: "system", content: SYSTEM },
+          {
+            role: "user",
+            content: `Generate exactly 40 realistic M&A articles from the last 14 days. Today is ${today}.
 
-    const raw = completion.choices[0]?.message?.content ?? "";
-    let jsonStr = raw.trim().replace(/```json\s*/gi, "").replace(/```\s*/gi, "").trim();
-    const start = jsonStr.indexOf("[");
-    const end = jsonStr.lastIndexOf("]");
-    if (start === -1 || end === -1) throw new Error("No JSON array in response");
-    jsonStr = jsonStr.substring(start, end + 1);
+Sectors (MUST hit these minimums):
+- 8 Financials (insurance, asset management, fintech, payments, wealth management)
+- 12 Private Equity (LBO, leveraged buyouts, take-private, growth equity, venture)
+- 10 Energy (oil, gas, renewables, solar, wind, mining, LNG, nuclear)
+- 10 Industrials (manufacturing, aerospace, defense, logistics, construction, chemicals)
 
-    const parsed = JSON.parse(jsonStr);
-    if (!Array.isArray(parsed) || parsed.length === 0) throw new Error("Empty or invalid array");
+RULES: Only PENDING or recently ANNOUNCED deals (not closed). Unique company names throughout. Specific deal values. Varied sources (Bloomberg, Reuters, WSJ, FT, CNBC).
 
-    let articles = deduplicateArticles(parsed as Article[]);
+Return ONLY a JSON array, each item: {"title":"...","description":"...","url":"https://example.com/a2-${now}-INDEX","publishedAt":"${today}T09:00:00Z","source":{"name":"Reuters"},"sector":"Energy","dealValue":"$2.1B","acquirer":"Company C","target":"Company D"}`,
+          },
+        ],
+        temperature: 0.8,
+        max_tokens: 8000,
+      }),
+    ]);
 
-    // Fallback: if fewer than 15 articles, append fallback articles to reach 15
-    if (articles.length < 15) {
+    const batch1 = res1.status === "fulfilled"
+      ? parseGroqResponse(res1.value.choices[0]?.message?.content ?? "")
+      : [];
+    const batch2 = res2.status === "fulfilled"
+      ? parseGroqResponse(res2.value.choices[0]?.message?.content ?? "")
+      : [];
+
+    if (res1.status === "rejected") console.error("[fetchMaNews] batch1 failed:", res1.reason);
+    if (res2.status === "rejected") console.error("[fetchMaNews] batch2 failed:", res2.reason);
+
+    let articles = deduplicateArticles([...batch1, ...batch2]);
+
+    // If either batch failed, supplement with fallback to ensure minimum coverage
+    if (articles.length < 30) {
+      console.warn(`[fetchMaNews] Only ${articles.length} articles — supplementing with fallback`);
       const fallback = getFallbackArticles();
       const existingUrls = new Set(articles.map(a => a.url));
       for (const fa of fallback) {
-        if (articles.length >= 15) break;
         if (!existingUrls.has(fa.url)) {
           articles.push(fa);
           existingUrls.add(fa.url);
@@ -297,8 +313,8 @@ Return ONLY the JSON array. No markdown, no backticks, no explanation.`,
 
     _cachedArticles = articles;
     _lastFetched = now;
-    // Update shared cross-module cache
     setCachedArticles(articles);
+    console.log(`[fetchMaNews] Generated ${articles.length} articles (batch1: ${batch1.length}, batch2: ${batch2.length})`);
     return _cachedArticles;
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Unknown error";
