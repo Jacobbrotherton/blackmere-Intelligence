@@ -4,9 +4,65 @@ import { SubscriptionProvider } from "@/lib/subscription-context";
 import { AuthProvider } from "@/lib/auth-context";
 import { DealAnalystChat } from "@/components/ui/deal-analyst-chat";
 
+const BASE_URL = "https://blackmereintelligence.com";
+
 export const metadata: Metadata = {
-  title: "Blackmere Intelligence | M&A Deal Tracker",
-  description: "Blackmere Intelligence — your premier source for M&A deal tracking, merger rumours, acquisition intelligence, and live dealflow analysis.",
+  metadataBase: new URL(BASE_URL),
+  title: {
+    default: "Blackmere Intelligence | M&A Deal Tracker",
+    template: "%s | Blackmere Intelligence",
+  },
+  description:
+    "Blackmere Intelligence — live M&A deal tracking, merger rumours, acquisition intelligence and dealflow analysis across Technology, Healthcare, Energy, Financials, Industrials and Private Equity.",
+  keywords: [
+    "M&A tracker",
+    "mergers and acquisitions",
+    "deal tracker",
+    "acquisition intelligence",
+    "merger news",
+    "private equity deals",
+    "corporate finance",
+    "dealflow",
+    "buyout tracker",
+    "M&A intelligence",
+    "takeover tracker",
+    "LBO tracker",
+    "Blackmere Intelligence",
+  ],
+  authors: [{ name: "Blackmere Intelligence", url: BASE_URL }],
+  creator: "Blackmere Intelligence",
+  publisher: "Blackmere Intelligence",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-snippet": -1, "max-image-preview": "large" },
+  },
+  alternates: { canonical: BASE_URL },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/logo.png", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
+    shortcut: "/favicon.ico",
+  },
+  openGraph: {
+    type: "website",
+    url: BASE_URL,
+    siteName: "Blackmere Intelligence",
+    title: "Blackmere Intelligence | M&A Deal Tracker",
+    description:
+      "Live M&A intelligence — mergers, acquisitions and divestitures tracked in real time across six global sectors.",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Blackmere Intelligence" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    site: "@BlackmereIntel",
+    title: "Blackmere Intelligence | M&A Deal Tracker",
+    description:
+      "Live M&A intelligence — mergers, acquisitions and divestitures tracked in real time.",
+    images: ["/og-image.png"],
+  },
 };
 
 export default function RootLayout({
