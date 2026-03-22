@@ -1,4 +1,5 @@
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 import { fetchMaNews, SECTOR_MAP } from "@/lib/news";
 import TickerBar from "@/components/TickerBar";
