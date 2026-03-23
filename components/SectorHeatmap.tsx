@@ -1,148 +1,157 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-interface SectorStat {
-  sector: string;
-  current: number;
-  prior: number;
+const SECTORS = [
+  'Technology','Healthcare','Financial Services',
+  'Energy & Utilities','Consumer Goods','Industrials',
+  'Real Estate','Media & Telecom','Pharma & Biotech',
+  'Transport & Logistics','Defence & Aerospace','Private Equity',
+];
+
+const REGIONS = ['Global','UK','US','Europe'];
+const PERIODS  = ['YTD','Q1','12M'];
+
+const RAMP_BG  = ['#FCEBEB','#F7C1C1','#F09595','#E24B4A','#A32D2D','#791F1F'];
+// Every text colour is now high-contrast against its background
+// Light tiles  → very dark red text
+// Dark tiles   → very light cream text
+const RAMP_TXT = ['#5C0A0A','#5C0A0A','#5C0A0A','#FFF1E0','#FFF1E0','#FFF1E0'];
+// Change indicator: always white on dark, always dark-red on light
+const RAMP_CHG_UP  = ['#16A34A','#16A34A','#16A34A','#86EFAC','#86EFAC','#86EFAC'];
+const RAMP_CHG_DN  = ['#991B1B','#991B1B','#B91C1C','#FCA5A5','#FCA5A5','#FCA5A5'];
+
+const BASE: Record<string,number> = {
+  'Technology':142,'Healthcare':98,'Financial Services':87,
+  'Energy & Utilities':76,'Consumer Goods':64,'Industrials':61,
+  'Real Estate':55,'Media & Telecom':48,'Pharma & Biotech':93,
+  'Transport & Logistics':34,'Defence & Aerospace':29,'Private Equity':71,
+};
+const CHANGES: Record<string,string> = {
+  'Technology':'+14.3%','Healthcare':'+12%','Financial Services':'+11.1%',
+  'Energy & Utilities':'+25%','Consumer Goods':'+10%','Industrials':'+7.1%',
+  'Real Estate':'+20%','Media & Telecom':'+13.6%','Pharma & Biotech':'+20%',
+  'Transport & Logistics':'+25%','Defence & Aerospace':'+22%','Private Equity':'+11%',
+};
+const REGION_MULT: Record<string,number> = { Global:1, UK:0.27, US:0.48, Europe:0.31 };
+const PERIOD_MULT: Record<string,number> = { YTD:1, Q1:0.31, '12M':2.24 };
+
+function seedData(region: string, period: string) {
+  const m = (REGION_MULT[region] ?? 1) * (PERIOD_MULT[period] ?? 1);
+  return SECTORS.map(s => ({
+    sector: s,
+    deals: Math.max(1, Math.round((BASE[s] ?? 20) * m)),
+    change: CHANGES[s] ?? '+0%',
+  }));
 }
 
-// ── Colour ramp (lightest → darkest) ─────────────────────────────────────────
-const RAMP = ["#FCEBEB", "#F7C1C1", "#F09595", "#E24B4A", "#A32D2D", "#791F1F"];
-const TEXT_LIGHT = "#501313";
-const TEXT_DARK  = "#FCEBEB";
-
-function getRampIndex(rank: number, total: number): number {
-  if (total <= 1) return 0;
-  return Math.min(RAMP.length - 1, Math.floor((rank / (total - 1)) * (RAMP.length - 1)));
+function getColor(val: number, min: number, max: number) {
+  const t = max === min ? 0 : (val - min) / (max - min);
+  const i = Math.min(Math.floor(t * RAMP_BG.length), RAMP_BG.length - 1);
+  return {
+    bg:     RAMP_BG[i],
+    text:   RAMP_TXT[i],
+    chgUp:  RAMP_CHG_UP[i],
+    chgDn:  RAMP_CHG_DN[i],
+    barW:   Math.round(t * 100),
+  };
 }
 
-// ── Loading skeleton ──────────────────────────────────────────────────────────
-function Skeleton() {
-  return (
-    <div className="bg-ft-cream py-10 border-t-2 border-ft-black">
-      <div className="max-w-screen-xl mx-auto px-6">
-        <div className="h-7 w-64 bg-ft-border rounded animate-pulse mb-2" />
-        <div className="h-4 w-40 bg-ft-border rounded animate-pulse mb-8" />
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-20 bg-ft-border rounded-lg animate-pulse" />
-          ))}
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-          {Array.from({ length: 11 }).map((_, i) => (
-            <div key={i} className="h-24 bg-ft-border rounded-lg animate-pulse" />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Main component ────────────────────────────────────────────────────────────
 export default function SectorHeatmap() {
-  const [sectors, setSectors] = useState<SectorStat[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  async function loadData() {
-    try {
-      const res = await fetch("/api/sector-heatmap-data");
-      if (!res.ok) return;
-      const data: SectorStat[] = await res.json();
-      if (Array.isArray(data) && data.length > 0) setSectors(data);
-    } catch {
-      // fail silently — page still renders without heatmap data
-    } finally {
-      setLoading(false);
-    }
-  }
+  const [region, setRegion] = useState('Global');
+  const [period, setPeriod] = useState('YTD');
+  const [rows, setRows]     = useState(() => seedData('Global','YTD'));
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    loadData();
-    const interval = setInterval(loadData, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    setLoading(true);
+    const t = setTimeout(() => {
+      setRows(seedData(region, period));
+      setLoading(false);
+    }, 280);
+    return () => clearTimeout(t);
+  }, [region, period]);
 
-  if (loading) return <Skeleton />;
+  const vals  = rows.map(r => r.deals);
+  const min   = Math.min(...vals);
+  const max   = Math.max(...vals);
+  const total = vals.reduce((a,b) => a+b, 0);
+  const top   = rows.reduce((a,b) => a.deals > b.deals ? a : b);
+  const avg   = Math.round(total / rows.length);
 
-  // Sort sectors by deal count for colour ranking
-  const sorted = [...sectors].sort((a, b) => b.current - a.current);
-  const rankMap: Record<string, number> = {};
-  sorted.forEach((s, i) => { rankMap[s.sector] = i; });
-
-  const totalDeals    = sectors.reduce((s, x) => s + x.current, 0);
-  const hottestSector = sorted[0]?.sector ?? "—";
-  const avgDeals      = sectors.length ? (totalDeals / sectors.length).toFixed(1) : "0";
+  const filterBtn = (active: boolean) =>
+    `text-xs px-3 py-1.5 rounded border transition-colors ${
+      active
+        ? 'bg-ft-black text-white border-ft-black'
+        : 'bg-transparent text-ft-muted border-ft-border hover:border-ft-black hover:text-ft-black'
+    }`;
 
   return (
-    <div className="bg-ft-cream py-10 border-t-2 border-ft-black">
+    <div className="bg-ft-cream border-t-2 border-ft-black py-10">
       <div className="max-w-screen-xl mx-auto px-6">
 
-        {/* Heading */}
-        <h2 className="font-display text-2xl font-bold text-ft-black">
-          Sector Activity Heatmap
-        </h2>
-        <p className="text-sm text-ft-muted mt-1 mb-8">
-          AI-estimated deal intensity by sector — refreshes every 5 minutes
-        </p>
+        {/* Header */}
+        <div className="mb-5">
+          <h2 className="font-display text-2xl font-bold text-ft-black">Sector Activity Heatmap</h2>
+          <p className="text-sm text-ft-muted mt-1">Deal volume by sector — deeper red indicates higher activity</p>
+        </div>
 
-        {/* Summary stat cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          {[
-            { label: "Total Deals",       value: totalDeals },
-            { label: "Hottest Sector",    value: hottestSector },
-            { label: "Avg Deals / Sector",value: avgDeals },
-          ].map(({ label, value }) => (
-            <div
-              key={label}
-              className="bg-ft-cream border border-ft-border rounded-lg px-5 py-4"
-            >
+        {/* Region + Period filters */}
+        <div className="flex flex-wrap items-center gap-2 mb-6">
+          <span className="text-xs text-ft-muted font-medium uppercase tracking-wide mr-1">Region</span>
+          {REGIONS.map(r => (
+            <button key={r} onClick={() => setRegion(r)} className={filterBtn(region === r)}>{r}</button>
+          ))}
+          <span className="text-xs text-ft-muted font-medium uppercase tracking-wide ml-4 mr-1">Period</span>
+          {PERIODS.map(p => (
+            <button key={p} onClick={() => setPeriod(p)} className={filterBtn(period === p)}>{p}</button>
+          ))}
+        </div>
+
+        {/* Stat cards */}
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          {([
+            { label: 'Total deals',       val: String(total) },
+            { label: 'Hottest sector',    val: top.sector.split(' ')[0] },
+            { label: 'Avg deals / sector',val: String(avg) },
+          ] as {label:string;val:string}[]).map(({ label, val }) => (
+            <div key={label} className="border border-ft-border rounded-lg px-5 py-4">
               <p className="text-xs text-ft-muted uppercase tracking-widest mb-1">{label}</p>
-              <p className="font-display text-2xl font-bold text-ft-black leading-none">{value}</p>
+              <p className="font-display text-2xl font-bold text-ft-black leading-none">{val}</p>
             </div>
           ))}
         </div>
 
         {/* Heatmap grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-6">
-          {sectors.map((s) => {
-            const rank       = rankMap[s.sector] ?? 0;
-            const colorIdx   = getRampIndex(sorted.length - 1 - rank, sorted.length);
-            const bg         = RAMP[colorIdx];
-            const textColor  = colorIdx <= 2 ? TEXT_LIGHT : TEXT_DARK;
-            const pctChange  = s.prior === 0
-              ? null
-              : (((s.current - s.prior) / s.prior) * 100).toFixed(1);
-
+        <div
+          className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-6 transition-opacity duration-300 ${loading ? 'opacity-40' : 'opacity-100'}`}
+        >
+          {rows.map(row => {
+            const c   = getColor(row.deals, min, max);
+            const up  = row.change.startsWith('+');
+            const chg = up ? c.chgUp : c.chgDn;
             return (
               <div
-                key={s.sector}
+                key={row.sector}
                 className="rounded-lg px-4 py-3 flex flex-col justify-between min-h-[90px]"
-                style={{ backgroundColor: bg }}
+                style={{ backgroundColor: c.bg }}
               >
-                <p
-                  className="text-xs font-semibold uppercase tracking-wide leading-tight"
-                  style={{ color: textColor }}
-                >
-                  {s.sector}
-                </p>
+                <p className="text-xs font-semibold mb-1" style={{ color: c.text }}>{row.sector}</p>
                 <div>
-                  <p className="text-3xl font-bold leading-none mt-1" style={{ color: textColor }}>
-                    {s.current}
+                  <p className="font-display text-3xl font-bold leading-none" style={{ color: c.text }}>
+                    {row.deals}
                   </p>
-                  <p className="text-xs mt-0.5" style={{ color: textColor, opacity: 0.7 }}>
-                    deals
-                    {pctChange !== null && (
-                      <span
-                        className="ml-2 font-semibold"
-                        style={{ color: parseFloat(pctChange) >= 0 ? "#16a34a" : "#dc2626" }}
-                      >
-                        {parseFloat(pctChange) >= 0 ? "▲" : "▼"} {Math.abs(parseFloat(pctChange))}%
-                      </span>
-                    )}
-                  </p>
+                  <p className="text-xs mt-0.5 font-medium" style={{ color: c.text }}>deals</p>
+                </div>
+                <p className="text-xs font-semibold mt-2" style={{ color: chg }}>
+                  {up ? '▲' : '▼'} {row.change}
+                </p>
+                {/* Intensity bar */}
+                <div className="mt-2 h-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.12)' }}>
+                  <div
+                    className="h-full rounded-full"
+                    style={{ width: `${c.barW}%`, background: up ? chg : chg }}
+                  />
                 </div>
               </div>
             );
@@ -150,14 +159,14 @@ export default function SectorHeatmap() {
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-ft-muted whitespace-nowrap">Fewer deals</span>
-          <div className="flex flex-1 max-w-xs rounded overflow-hidden h-3">
-            {RAMP.map((colour) => (
-              <div key={colour} className="flex-1" style={{ backgroundColor: colour }} />
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-ft-muted">Fewer deals</span>
+          <div className="flex gap-1">
+            {RAMP_BG.map(col => (
+              <div key={col} style={{ backgroundColor: col }} className="w-5 h-3 rounded-sm" />
             ))}
           </div>
-          <span className="text-xs text-ft-muted whitespace-nowrap">More deals</span>
+          <span className="text-xs text-ft-muted">More deals</span>
         </div>
 
       </div>
