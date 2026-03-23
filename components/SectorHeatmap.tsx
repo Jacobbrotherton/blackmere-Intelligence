@@ -9,30 +9,6 @@ interface SectorStat {
   prior: number;
 }
 
-// ── Sector bucketing ──────────────────────────────────────────────────────────
-const SECTOR_BUCKETS: { label: string; keywords: string[] }[] = [
-  { label: "Technology",           keywords: ["tech", "software", "semiconductor", "cloud", "cyber", "it ", "information technology", "saas", "internet", "hardware", "telecom", "communication"] },
-  { label: "Healthcare",           keywords: ["health", "hospital", "medical", "clinic", "care"] },
-  { label: "Financial Services",   keywords: ["bank", "financ", "insurance", "invest", "asset management", "capital", "fund", "fintech", "payment", "wealth"] },
-  { label: "Energy & Utilities",   keywords: ["energy", "oil", "gas", "utility", "utilities", "power", "electric", "solar", "wind", "renewable", "mining", "coal", "lng"] },
-  { label: "Consumer Goods",       keywords: ["consumer", "retail", "food", "beverage", "apparel", "fashion", "luxury", "household", "grocery"] },
-  { label: "Industrials",          keywords: ["industrial", "manufactur", "engineer", "chemical", "material", "construction", "machinery", "equipment"] },
-  { label: "Real Estate",          keywords: ["real estate", "reit", "property", "housing", "realty", "mortgage"] },
-  { label: "Media & Telecom",      keywords: ["media", "entertainment", "broadcast", "publish", "gaming", "streaming", "telecom", "wireless", "mobile network"] },
-  { label: "Pharma & Biotech",     keywords: ["pharma", "biotech", "drug", "therapeut", "genomic", "life science", "vaccine", "biolog"] },
-  { label: "Transport & Logistics",keywords: ["transport", "logistic", "shipping", "freight", "airline", "aviation", "rail", "truck", "fleet", "delivery", "cargo"] },
-  { label: "Defence & Aerospace",  keywords: ["defence", "defense", "aerospace", "military", "weapon", "security", "government"] },
-];
-
-function classifyIndustry(industry: string | null | undefined): string {
-  if (!industry) return "Other";
-  const lower = industry.toLowerCase();
-  for (const bucket of SECTOR_BUCKETS) {
-    if (bucket.keywords.some((kw) => lower.includes(kw))) return bucket.label;
-  }
-  return "Other";
-}
-
 // ── Colour ramp (lightest → darkest) ─────────────────────────────────────────
 const RAMP = ["#FCEBEB", "#F7C1C1", "#F09595", "#E24B4A", "#A32D2D", "#791F1F"];
 const TEXT_LIGHT = "#501313";
@@ -72,41 +48,10 @@ export default function SectorHeatmap() {
 
   async function loadData() {
     try {
-      const key = process.env.NEXT_PUBLIC_FMP_API_KEY;
-      if (!key) return;
-
-      // Fetch latest ~200 M&A deals
-      const res = await fetch(
-        `https://financialmodelingprep.com/api/v4/mergers-latest-acquisitions?page=0&apikey=${key}`
-      );
+      const res = await fetch("/api/sector-heatmap-data");
       if (!res.ok) return;
-      const deals: { targetedIndustry?: string; transactionDate?: string }[] = await res.json();
-      if (!Array.isArray(deals) || deals.length === 0) return;
-
-      // Split into current (first half) and prior (second half) periods
-      const mid = Math.floor(deals.length / 2);
-      const currentDeals = deals.slice(0, mid);
-      const priorDeals   = deals.slice(mid);
-
-      const count = (arr: typeof deals) => {
-        const map: Record<string, number> = {};
-        for (const d of arr) {
-          const label = classifyIndustry(d.targetedIndustry);
-          map[label] = (map[label] ?? 0) + 1;
-        }
-        return map;
-      };
-
-      const currentMap = count(currentDeals);
-      const priorMap   = count(priorDeals);
-
-      const stats: SectorStat[] = SECTOR_BUCKETS.map(({ label }) => ({
-        sector:  label,
-        current: currentMap[label] ?? 0,
-        prior:   priorMap[label]   ?? 0,
-      }));
-
-      setSectors(stats);
+      const data: SectorStat[] = await res.json();
+      if (Array.isArray(data) && data.length > 0) setSectors(data);
     } catch {
       // fail silently — page still renders without heatmap data
     } finally {
@@ -140,7 +85,7 @@ export default function SectorHeatmap() {
           Sector Activity Heatmap
         </h2>
         <p className="text-sm text-ft-muted mt-1 mb-8">
-          Live deal intensity by sector — refreshes every 5 minutes
+          AI-estimated deal intensity by sector — refreshes every 5 minutes
         </p>
 
         {/* Summary stat cards */}
