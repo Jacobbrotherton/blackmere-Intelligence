@@ -11,6 +11,7 @@ import ArticleDrawer from "@/components/ArticleDrawer";
 import BriefingPrefetcher from "@/components/BriefingPrefetcher";
 import LandmarkDeals from "@/components/LandmarkDeals";
 import { PremiumUpgradeBanner } from "@/components/PremiumUpgradeBanner";
+import SectorHeatmap from "@/components/SectorHeatmap";
 import SearchBar from "@/components/SearchBar";
 import StockAnalysisNavButton from "@/components/StockAnalysisNavButton";
 import UpgradeNavButton from "@/components/UpgradeNavButton";
@@ -82,6 +83,9 @@ export default async function Home() {
         <DealSpotlight articles={articles} />
 
       </main>
+
+      {/* Sector Activity Heatmap — live deal intensity by sector */}
+      <SectorHeatmap />
 
       {/* Full-width orbital sector explorer */}
       <div className="max-w-screen-xl mx-auto px-6">
