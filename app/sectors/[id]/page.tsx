@@ -30,7 +30,11 @@ interface FmpDeal {
 
 async function getKvDeals(sectorId: string): Promise<FmpDeal[] | null> {
   try {
-    const { kv } = await import('@vercel/kv');
+    const { Redis } = await import('@upstash/redis');
+    const kv = new Redis({
+      url: process.env.Blackmere_KV_REST_API_URL!,
+      token: process.env.Blackmere_KV_REST_API_TOKEN!,
+    });
     const raw = await kv.get<string>('sector-deals');
     if (!raw) return null;
     const allSectorDeals = JSON.parse(raw as string);

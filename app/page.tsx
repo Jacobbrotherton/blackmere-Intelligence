@@ -32,7 +32,11 @@ function dealToArticle(deal: any): Article {
 
 async function getKvData(): Promise<{ articles: Article[] | null; lastUpdated: string | null }> {
   try {
-    const { kv } = await import('@vercel/kv');
+    const { Redis } = await import('@upstash/redis');
+    const kv = new Redis({
+      url: process.env.Blackmere_KV_REST_API_URL!,
+      token: process.env.Blackmere_KV_REST_API_TOKEN!,
+    });
     const [feedRaw, lastUpdated] = await Promise.all([
       kv.get<string>('homepage-feed'),
       kv.get<string>('last-updated'),

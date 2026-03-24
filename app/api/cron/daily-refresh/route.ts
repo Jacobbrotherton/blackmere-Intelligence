@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server';
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
+
+const kv = new Redis({
+  url: process.env.Blackmere_KV_REST_API_URL!,
+  token: process.env.Blackmere_KV_REST_API_TOKEN!,
+});
 
 export const dynamic = 'force-dynamic';
 
