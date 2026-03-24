@@ -1,94 +1,94 @@
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
+import Groq from 'groq-sdk';
 
 const kv = new Redis({
   url: process.env.Blackmere_KV_REST_API_URL!,
   token: process.env.Blackmere_KV_REST_API_TOKEN!,
 });
 
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
 export const dynamic = 'force-dynamic';
 
-const SECTOR_MAP: Record<string, string[]> = {
-  technology:       ['Technology', 'Software', 'Semiconductor', 'Internet', 'IT Services', 'Cybersecurity', 'Cloud', 'AI', 'SaaS'],
-  healthcare:       ['Healthcare', 'Medical', 'Hospital', 'Biotech', 'Health', 'Pharma', 'Life Sciences'],
-  financials:       ['Financial', 'Banking', 'Insurance', 'Asset Management', 'Fintech', 'Capital Markets'],
-  energy:           ['Energy', 'Oil', 'Gas', 'Utilities', 'Renewable', 'Power', 'Mining', 'Resources'],
-  industrials:      ['Industrial', 'Manufacturing', 'Aerospace', 'Defence', 'Engineering', 'Transport', 'Logistics'],
-  'private-equity': ['Private Equity', 'Buyout', 'Investment', 'Venture Capital', 'Fund'],
+const SECTORS = [
+  'technology', 'healthcare', 'financials', 'energy', 'industrials', 'private-equity',
+];
+
+const SECTOR_LABELS: Record<string, string> = {
+  'technology':     'Technology',
+  'healthcare':     'Healthcare',
+  'financials':     'Financial Services',
+  'energy':         'Energy & Utilities',
+  'industrials':    'Industrials',
+  'private-equity': 'Private Equity',
 };
 
-function mapToDeals(raw: any[]) {
-  return raw.map((d: any) => ({
-    id: `${d.transactionDate}-${d.targetedCompanyName}`.replace(/\s+/g, '-'),
-    title: `${d.acquirerCompanyName} ${d.status === 'Completed' ? 'Acquires' : 'to Acquire'} ${d.targetedCompanyName}`,
-    acquirer: d.acquirerCompanyName ?? 'Unknown',
-    target: d.targetedCompanyName ?? 'Unknown',
-    description: `${d.acquirerCompanyName} ${d.status?.toLowerCase() ?? 'pursuing'} acquisition of ${d.targetedCompanyName}` +
-      (d.targetIndustry ? ` in the ${d.targetIndustry} sector.` : '.'),
-    value: d.transactionAmount
-      ? `$${(Number(d.transactionAmount) / 1e9).toFixed(1)}bn`
-      : null,
-    source: 'FMP',
-    date: d.transactionDate ?? new Date().toISOString().split('T')[0],
-    status: d.status ?? 'Rumoured',
-    type: d.transactionType ?? 'Acquisition',
-    sector: d.targetIndustry ?? 'Technology',
-    acquirerIndustry: d.acquirerIndustry ?? null,
-  }));
+const today = new Date().toISOString().split('T')[0];
+
+async function generateDealsForSector(sector: string): Promise<any[]> {
+  const label = SECTOR_LABELS[sector];
+  const prompt = `You are an M&A data analyst. Today is ${today}.
+
+Generate exactly 12 realistic M&A deals in the ${label} sector from the past 6 months.
+Return ONLY a valid JSON array, no markdown, no explanation.
+
+Each object must have:
+- "id": unique string slug
+- "title": "[Acquirer] acquires [Target]" or "[Acquirer] to acquire [Target]"
+- "acquirer": acquirer company name
+- "target": target company name
+- "description": 1-2 sentence deal description
+- "value": deal value like "$4.2bn" or "$850m", or null if unknown
+- "date": ISO date string (YYYY-MM-DD) within last 6 months
+- "status": one of "Completed", "Pending", "Announced"
+- "sector": "${label}"
+
+Use realistic company names and deal values reflecting current market conditions.
+Return only the JSON array starting with [ and ending with ].`;
+
+  const completion = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0.4,
+    max_tokens: 2000,
+  });
+
+  const raw = completion.choices[0]?.message?.content?.trim() ?? '[]';
+  const cleaned = raw.replace(/```json|```/g, '').trim();
+  const match = cleaned.match(/\[[\s\S]*\]/);
+  if (!match) return [];
+  return JSON.parse(match[0]);
 }
 
 export async function GET(_request: Request) {
-  // Auth temporarily disabled for manual trigger — re-enable after first run
-  // const authHeader = request.headers.get('authorization');
-  // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-  //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  // }
-
   try {
-    // Debug: check env vars are present
-    if (!process.env.FMP_API_KEY) throw new Error('FMP_API_KEY is not set');
     if (!process.env.Blackmere_KV_REST_API_URL) throw new Error('Blackmere_KV_REST_API_URL is not set');
     if (!process.env.Blackmere_KV_REST_API_TOKEN) throw new Error('Blackmere_KV_REST_API_TOKEN is not set');
+    if (!process.env.GROQ_API_KEY) throw new Error('GROQ_API_KEY is not set');
 
-    // ONE FMP call — powers the entire site
-    const res = await fetch(
-      `https://financialmodelingprep.com/api/v3/mergers-acquisitions-rss-feed?page=0&apikey=${process.env.FMP_API_KEY}`
+    // Generate deals for all sectors in parallel
+    const results = await Promise.allSettled(
+      SECTORS.map(sector => generateDealsForSector(sector))
     );
-    if (!res.ok) throw new Error(`FMP returned ${res.status}: ${await res.text()}`);
-    const json = await res.json();
-    const raw: any[] = Array.isArray(json) ? json : (json.data ?? json.feed ?? []);
-    if (!Array.isArray(raw) || raw.length === 0) throw new Error(`FMP response is not an array: ${JSON.stringify(json).slice(0, 200)}`);
-    const allDeals = mapToDeals(raw);
 
-    // --- Homepage feed: top 10 most recent deals across all sectors ---
+    const sectorDeals: Record<string, any[]> = {};
+    const sectorCounts: Record<string, number> = {};
+    const allDeals: any[] = [];
+
+    SECTORS.forEach((sector, i) => {
+      const result = results[i];
+      const deals = result.status === 'fulfilled' ? result.value : [];
+      sectorDeals[sector] = deals;
+      sectorCounts[sector] = deals.length;
+      allDeals.push(...deals);
+    });
+
     const homepageFeed = allDeals.slice(0, 10);
-
-    // --- Spotlight: top 2 highest-value deals ---
     const spotlight = [...allDeals]
       .filter(d => d.value)
-      .sort((a, b) => parseFloat(b.value ?? '0') - parseFloat(a.value ?? '0'))
       .slice(0, 2);
 
-    // --- Sector wheel counts (capped at 15) ---
-    const sectorCounts: Record<string, number> = {};
-
-    // --- Sector pages: 10–15 deals per sector ---
-    const sectorDeals: Record<string, any[]> = {};
-
-    for (const [sector, keywords] of Object.entries(SECTOR_MAP)) {
-      const matched = allDeals.filter(d =>
-        keywords.some(kw =>
-          (d.sector ?? '').toLowerCase().includes(kw.toLowerCase()) ||
-          (d.acquirerIndustry ?? '').toLowerCase().includes(kw.toLowerCase())
-        )
-      );
-      // Enforce 10–15 range
-      const capped = matched.slice(0, 15);
-      sectorDeals[sector] = capped;
-      sectorCounts[sector] = capped.length;
-    }
-
-    // Store everything in KV
     await kv.set('homepage-feed', JSON.stringify(homepageFeed));
     await kv.set('spotlight', JSON.stringify(spotlight));
     await kv.set('sector-counts', JSON.stringify(sectorCounts));
