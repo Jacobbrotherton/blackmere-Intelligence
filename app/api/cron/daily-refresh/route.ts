@@ -52,11 +52,12 @@ export async function GET(_request: Request) {
 
     // ONE FMP call — powers the entire site
     const res = await fetch(
-      `https://financialmodelingprep.com/api/v4/mergers-latest-acquisitions?page=0&apikey=${process.env.FMP_API_KEY}`
+      `https://financialmodelingprep.com/api/v3/mergers-acquisitions-rss-feed?page=0&apikey=${process.env.FMP_API_KEY}`
     );
     if (!res.ok) throw new Error(`FMP returned ${res.status}: ${await res.text()}`);
-    const raw: any[] = await res.json();
-    if (!Array.isArray(raw)) throw new Error(`FMP response is not an array: ${JSON.stringify(raw).slice(0, 200)}`);
+    const json = await res.json();
+    const raw: any[] = Array.isArray(json) ? json : (json.data ?? json.feed ?? []);
+    if (!Array.isArray(raw) || raw.length === 0) throw new Error(`FMP response is not an array: ${JSON.stringify(json).slice(0, 200)}`);
     const allDeals = mapToDeals(raw);
 
     // --- Homepage feed: top 10 most recent deals across all sectors ---

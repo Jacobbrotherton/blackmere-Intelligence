@@ -58,9 +58,9 @@ export async function GET(request: Request) {
   try {
     // Fetch two pages — page 0 = recent, page 1 = older (for % change)
     const [res0, res1] = await Promise.all([
-      fetch(`https://financialmodelingprep.com/api/v4/mergers-latest-acquisitions?page=0&apikey=${process.env.FMP_API_KEY}`,
+      fetch(`https://financialmodelingprep.com/api/v4/mergers-acquisitions-rss-feed?page=0&apikey=${process.env.FMP_API_KEY}`,
         { next: { revalidate: 21600 } }),
-      fetch(`https://financialmodelingprep.com/api/v4/mergers-latest-acquisitions?page=1&apikey=${process.env.FMP_API_KEY}`,
+      fetch(`https://financialmodelingprep.com/api/v4/mergers-acquisitions-rss-feed?page=1&apikey=${process.env.FMP_API_KEY}`,
         { next: { revalidate: 21600 } }),
     ]);
 
