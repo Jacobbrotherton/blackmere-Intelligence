@@ -32,34 +32,40 @@ const HEATMAP_SECTORS = [
 ];
 
 const today = new Date().toISOString().split('T')[0];
+const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+function isWithinWindow(dateStr: string): boolean {
+  return dateStr >= cutoff && dateStr <= today;
+}
 
 async function generateDealsForSector(sector: string): Promise<any[]> {
   const label = SECTOR_LABELS[sector];
-  const prompt = `You are an M&A data analyst generating fictional but highly plausible M&A deals for a financial intelligence platform. Today is ${today}.
+  const prompt = `You are a financial fiction writer creating simulated M&A deal data for a demo platform. Today is ${today}.
 
-IMPORTANT: Do NOT use any real historical deals that have already occurred. Invent entirely new fictional deals between real or plausible company names that could credibly be happening right now in ${today}'s market environment.
+You must invent COMPLETELY FICTIONAL companies and deals — do not use any real company names or any deals that have ever actually happened. Make up plausible-sounding company names, acquirers, and targets that do not exist in real life.
 
-Generate exactly 12 fictional but realistic M&A deals in the ${label} sector. All dates must fall within the last 14 days (${new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]} to ${today}).
+Generate exactly 12 fictional simulated M&A deals in the ${label} sector.
+Every single deal "date" MUST be between ${cutoff} and ${today} — no exceptions.
 Return ONLY a valid JSON array, no markdown, no explanation.
 
 Each object must have:
-- "id": unique string slug
+- "id": unique kebab-case slug (e.g. "acmecorp-buys-techvault-2025")
 - "title": "[Acquirer] acquires [Target]" or "[Acquirer] to acquire [Target]"
-- "acquirer": acquirer company name
-- "target": target company name
-- "description": 1-2 sentence deal description explaining strategic rationale
-- "value": deal value like "$4.2bn" or "$850m", or null if undisclosed
-- "date": ISO date string (YYYY-MM-DD) — must be within the last 14 days, spread across different days
+- "acquirer": fictional company name
+- "target": fictional company name
+- "description": 1-2 sentence deal rationale (AI integration, market expansion, etc.)
+- "value": deal value like "$4.2bn" or "$850m", or null
+- "date": ISO date string between ${cutoff} and ${today}
 - "status": one of "Completed", "Pending", "Announced"
 - "sector": "${label}"
 
-Invent new deal scenarios. Do not recycle deals from before 2025. Use current market themes (AI, energy transition, consolidation, etc.).
+Spread the 12 dates evenly across the ${cutoff} to ${today} window. Use current themes: AI, energy transition, cloud, biotech, defence, fintech.
 Return only the JSON array starting with [ and ending with ].`;
 
   const completion = await groq.chat.completions.create({
     model: 'llama-3.3-70b-versatile',
     messages: [{ role: 'user', content: prompt }],
-    temperature: 0.4,
+    temperature: 0.8,
     max_tokens: 2000,
   });
 
@@ -67,7 +73,9 @@ Return only the JSON array starting with [ and ending with ].`;
   const cleaned = raw.replace(/```json|```/g, '').trim();
   const match = cleaned.match(/\[[\s\S]*\]/);
   if (!match) return [];
-  return JSON.parse(match[0]);
+  const parsed = JSON.parse(match[0]);
+  // Hard filter: reject any deal whose date falls outside the 14-day window
+  return parsed.filter((d: any) => d?.date && isWithinWindow(d.date));
 }
 
 export async function GET(_request: Request) {
