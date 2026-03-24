@@ -35,9 +35,11 @@ const today = new Date().toISOString().split('T')[0];
 
 async function generateDealsForSector(sector: string): Promise<any[]> {
   const label = SECTOR_LABELS[sector];
-  const prompt = `You are an M&A data analyst. Today is ${today}.
+  const prompt = `You are an M&A data analyst generating fictional but highly plausible M&A deals for a financial intelligence platform. Today is ${today}.
 
-Generate exactly 12 realistic M&A deals in the ${label} sector. All deals must have dates within the last 14 days (between ${new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]} and ${today}).
+IMPORTANT: Do NOT use any real historical deals that have already occurred. Invent entirely new fictional deals between real or plausible company names that could credibly be happening right now in ${today}'s market environment.
+
+Generate exactly 12 fictional but realistic M&A deals in the ${label} sector. All dates must fall within the last 14 days (${new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]} to ${today}).
 Return ONLY a valid JSON array, no markdown, no explanation.
 
 Each object must have:
@@ -45,13 +47,13 @@ Each object must have:
 - "title": "[Acquirer] acquires [Target]" or "[Acquirer] to acquire [Target]"
 - "acquirer": acquirer company name
 - "target": target company name
-- "description": 1-2 sentence deal description
-- "value": deal value like "$4.2bn" or "$850m", or null if unknown
-- "date": ISO date string (YYYY-MM-DD) — must be within the last 14 days
+- "description": 1-2 sentence deal description explaining strategic rationale
+- "value": deal value like "$4.2bn" or "$850m", or null if undisclosed
+- "date": ISO date string (YYYY-MM-DD) — must be within the last 14 days, spread across different days
 - "status": one of "Completed", "Pending", "Announced"
 - "sector": "${label}"
 
-Use realistic company names and deal values reflecting current market conditions. Spread dates across the last 14 days.
+Invent new deal scenarios. Do not recycle deals from before 2025. Use current market themes (AI, energy transition, consolidation, etc.).
 Return only the JSON array starting with [ and ending with ].`;
 
   const completion = await groq.chat.completions.create({
