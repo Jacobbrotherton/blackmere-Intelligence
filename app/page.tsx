@@ -21,7 +21,7 @@ function dealToArticle(deal: any): Article {
   return {
     title: deal.title ?? '',
     description: deal.description ?? null,
-    url: '',
+    url: deal.id || deal.title || '',
     publishedAt: deal.date ? deal.date + 'T06:00:00Z' : new Date().toISOString(),
     source: { name: deal.source ?? 'FMP' },
     acquirer: deal.acquirer,
