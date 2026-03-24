@@ -62,7 +62,7 @@ function matchesSector(article: Article, sectorId: string, keywords: readonly st
   return keywords.some((kw) => text.includes(kw.toLowerCase()));
 }
 
-export default function SectorOrbit({ articles }: { articles: Article[] }) {
+export default function SectorOrbit({ articles, sectorCounts }: { articles: Article[]; sectorCounts?: Record<string, number> }) {
   const router = useRouter();
   const [hovered, setHovered] = useState<string | null>(null);
 
@@ -92,7 +92,7 @@ export default function SectorOrbit({ articles }: { articles: Article[] }) {
             const endAngle = startAngle + segDeg;
             const midAngle = startAngle + segDeg / 2;
             const isHovered = hovered === sector.id;
-            const count = articles.filter((a) => matchesSector(a, sector.id, sector.keywords)).length;
+            const count = sectorCounts?.[sector.id] ?? articles.filter((a) => matchesSector(a, sector.id, sector.keywords)).length;
             const color = COLORS[i];
             const lines = LABEL_LINES[sector.id] ?? [sector.label];
             const [txText, tyText] = p2c(midAngle, R_TEXT);

@@ -30,32 +30,37 @@ function dealToArticle(deal: any): Article {
   };
 }
 
-async function getKvData(): Promise<{ articles: Article[] | null; lastUpdated: string | null }> {
+async function getKvData(): Promise<{ articles: Article[] | null; lastUpdated: string | null; sectorCounts: Record<string, number> | null }> {
   try {
     const { Redis } = await import('@upstash/redis');
     const kv = new Redis({
       url: process.env.Blackmere_KV_REST_API_URL!,
       token: process.env.Blackmere_KV_REST_API_TOKEN!,
     });
-    const [feedRaw, lastUpdated] = await Promise.all([
+    const [feedRaw, lastUpdated, countsRaw] = await Promise.all([
       kv.get('homepage-feed'),
       kv.get<string>('last-updated'),
+      kv.get('sector-counts'),
     ]);
-    if (!feedRaw) return { articles: null, lastUpdated: null };
+    if (!feedRaw) return { articles: null, lastUpdated: null, sectorCounts: null };
     const feed: any[] = typeof feedRaw === 'string' ? JSON.parse(feedRaw) : feedRaw as any;
+    const sectorCounts: Record<string, number> | null = countsRaw
+      ? (typeof countsRaw === 'string' ? JSON.parse(countsRaw) : countsRaw as any)
+      : null;
     return {
       articles: Array.isArray(feed) && feed.length > 0 ? feed.filter(Boolean).map(dealToArticle) : null,
       lastUpdated: lastUpdated as string | null,
+      sectorCounts,
     };
   } catch (e) {
     console.error('getKvData error:', e);
-    return { articles: null, lastUpdated: null };
+    return { articles: null, lastUpdated: null, sectorCounts: null };
   }
 }
 
 export default async function Home() {
   // Try KV first (populated by daily cron), fall back to Groq
-  const { articles: kvArticles, lastUpdated } = await getKvData();
+  const { articles: kvArticles, lastUpdated, sectorCounts } = await getKvData();
   const articles: Article[] = kvArticles ?? await fetchMaNews();
 
   const LEAD_COUNT = 8;
@@ -133,7 +138,7 @@ export default async function Home() {
 
       {/* Full-width orbital sector explorer */}
       <div className="max-w-screen-xl mx-auto px-6">
-        <SectorOrbit articles={articles} />
+        <SectorOrbit articles={articles} sectorCounts={sectorCounts ?? undefined} />
       </div>
 
       {/* Landmark Deals of the Last Decade carousel */}
