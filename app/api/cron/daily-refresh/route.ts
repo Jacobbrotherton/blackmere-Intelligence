@@ -37,7 +37,7 @@ async function generateDealsForSector(sector: string): Promise<any[]> {
   const label = SECTOR_LABELS[sector];
   const prompt = `You are an M&A data analyst. Today is ${today}.
 
-Generate exactly 12 realistic M&A deals in the ${label} sector from the past 6 months.
+Generate exactly 12 realistic M&A deals in the ${label} sector. All deals must have dates within the last 14 days (between ${new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]} and ${today}).
 Return ONLY a valid JSON array, no markdown, no explanation.
 
 Each object must have:
@@ -47,11 +47,11 @@ Each object must have:
 - "target": target company name
 - "description": 1-2 sentence deal description
 - "value": deal value like "$4.2bn" or "$850m", or null if unknown
-- "date": ISO date string (YYYY-MM-DD) within last 6 months
+- "date": ISO date string (YYYY-MM-DD) — must be within the last 14 days
 - "status": one of "Completed", "Pending", "Announced"
 - "sector": "${label}"
 
-Use realistic company names and deal values reflecting current market conditions.
+Use realistic company names and deal values reflecting current market conditions. Spread dates across the last 14 days.
 Return only the JSON array starting with [ and ending with ].`;
 
   const completion = await groq.chat.completions.create({
