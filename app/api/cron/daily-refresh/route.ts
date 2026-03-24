@@ -24,6 +24,13 @@ const SECTOR_LABELS: Record<string, string> = {
   'private-equity': 'Private Equity',
 };
 
+// All 12 heatmap sectors with realistic base deal counts (Global YTD)
+const HEATMAP_SECTORS = [
+  'Technology', 'Healthcare', 'Financial Services', 'Energy & Utilities',
+  'Consumer Goods', 'Industrials', 'Real Estate', 'Media & Telecom',
+  'Pharma & Biotech', 'Transport & Logistics', 'Defence & Aerospace', 'Private Equity',
+];
+
 const today = new Date().toISOString().split('T')[0];
 
 async function generateDealsForSector(sector: string): Promise<any[]> {
@@ -89,10 +96,35 @@ export async function GET(_request: Request) {
       .filter(d => d.value)
       .slice(0, 2);
 
+    // Generate heatmap data — one Groq call, cached all day
+    const heatmapPrompt = `You are an M&A market analyst. Today is ${today}.
+
+Return ONLY a valid JSON array for these exactly 12 sectors, no markdown, no explanation.
+Each object: { "sector": string, "deals": number, "change": string }
+- "deals" = realistic Global YTD deal count (integer)
+- "change" = YoY % change formatted as "+X.X%" or "-X.X%"
+- Reflect real market conditions (Tech highest volume, Defence rising, Real Estate subdued)
+
+Sectors: ${HEATMAP_SECTORS.join(', ')}
+
+Return only the JSON array starting with [ and ending with ].`;
+
+    const heatmapCompletion = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [{ role: 'user', content: heatmapPrompt }],
+      temperature: 0.3,
+      max_tokens: 600,
+    });
+    const heatmapRaw = heatmapCompletion.choices[0]?.message?.content?.trim() ?? '[]';
+    const heatmapCleaned = heatmapRaw.replace(/```json|```/g, '').trim();
+    const heatmapMatch = heatmapCleaned.match(/\[[\s\S]*\]/);
+    const heatmapData = heatmapMatch ? JSON.parse(heatmapMatch[0]) : [];
+
     await kv.set('homepage-feed', JSON.stringify(homepageFeed));
     await kv.set('spotlight', JSON.stringify(spotlight));
     await kv.set('sector-counts', JSON.stringify(sectorCounts));
     await kv.set('sector-deals', JSON.stringify(sectorDeals));
+    await kv.set('heatmap-base', JSON.stringify(heatmapData));
     await kv.set('last-updated', new Date().toISOString());
 
     return NextResponse.json({
