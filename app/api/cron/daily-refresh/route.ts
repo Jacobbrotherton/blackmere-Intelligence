@@ -45,11 +45,18 @@ export async function GET(_request: Request) {
   // }
 
   try {
+    // Debug: check env vars are present
+    if (!process.env.FMP_API_KEY) throw new Error('FMP_API_KEY is not set');
+    if (!process.env.Blackmere_KV_REST_API_URL) throw new Error('Blackmere_KV_REST_API_URL is not set');
+    if (!process.env.Blackmere_KV_REST_API_TOKEN) throw new Error('Blackmere_KV_REST_API_TOKEN is not set');
+
     // ONE FMP call — powers the entire site
     const res = await fetch(
       `https://financialmodelingprep.com/api/v4/mergers-latest-acquisitions?page=0&apikey=${process.env.FMP_API_KEY}`
     );
+    if (!res.ok) throw new Error(`FMP returned ${res.status}: ${await res.text()}`);
     const raw: any[] = await res.json();
+    if (!Array.isArray(raw)) throw new Error(`FMP response is not an array: ${JSON.stringify(raw).slice(0, 200)}`);
     const allDeals = mapToDeals(raw);
 
     // --- Homepage feed: top 10 most recent deals across all sectors ---
@@ -95,7 +102,8 @@ export async function GET(_request: Request) {
       sectorCounts,
     });
   } catch (err) {
-    console.error('Daily refresh failed:', err);
-    return NextResponse.json({ error: 'Refresh failed' }, { status: 500 });
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('Daily refresh failed:', message);
+    return NextResponse.json({ error: 'Refresh failed', detail: message }, { status: 500 });
   }
 }
