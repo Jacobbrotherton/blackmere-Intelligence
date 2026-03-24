@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-import { fetchMaNews, SECTOR_MAP } from "@/lib/news";
+import { fetchMaNews, SECTOR_MAP, Article } from "@/lib/news";
 import TickerBar from "@/components/TickerBar";
 import LeadStories from "@/components/LeadStories";
 import SectorOrbit from "@/components/SectorOrbit";
@@ -16,8 +16,42 @@ import SearchBar from "@/components/SearchBar";
 import StockAnalysisNavButton from "@/components/StockAnalysisNavButton";
 import UpgradeNavButton from "@/components/UpgradeNavButton";
 
+// Adapt FMP KV deal to Article shape (used when KV has data)
+function dealToArticle(deal: any): Article {
+  return {
+    title: deal.title ?? '',
+    description: deal.description ?? null,
+    url: '',
+    publishedAt: deal.date ? deal.date + 'T06:00:00Z' : new Date().toISOString(),
+    source: { name: deal.source ?? 'FMP' },
+    acquirer: deal.acquirer,
+    target: deal.target,
+    dealValue: deal.value ?? undefined,
+  };
+}
+
+async function getKvData(): Promise<{ articles: Article[] | null; lastUpdated: string | null }> {
+  try {
+    const { kv } = await import('@vercel/kv');
+    const [feedRaw, lastUpdated] = await Promise.all([
+      kv.get<string>('homepage-feed'),
+      kv.get<string>('last-updated'),
+    ]);
+    if (!feedRaw) return { articles: null, lastUpdated: null };
+    const feed = JSON.parse(feedRaw as string);
+    return {
+      articles: Array.isArray(feed) && feed.length > 0 ? feed.map(dealToArticle) : null,
+      lastUpdated: lastUpdated as string | null,
+    };
+  } catch {
+    return { articles: null, lastUpdated: null };
+  }
+}
+
 export default async function Home() {
-  const articles = await fetchMaNews();
+  // Try KV first (populated by daily cron), fall back to Groq
+  const { articles: kvArticles, lastUpdated } = await getKvData();
+  const articles: Article[] = kvArticles ?? await fetchMaNews();
 
   const LEAD_COUNT = 8;
   const leadUrls = new Set(articles.slice(0, LEAD_COUNT).map((a) => a.url));
@@ -36,6 +70,11 @@ export default async function Home() {
           <p className="text-xs text-ft-muted mt-1 tracking-widest">
             M&amp;A DEAL TRACKER · MERGERS · ACQUISITIONS · DIVESTITURES
           </p>
+          {lastUpdated && (
+            <p className="text-xs text-ft-muted mt-0.5">
+              Data refreshed {new Date(lastUpdated).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </p>
+          )}
         </div>
       </header>
 
@@ -103,7 +142,7 @@ export default async function Home() {
         <div className="max-w-screen-xl mx-auto flex flex-wrap gap-6 justify-between">
           <div>
             <p className="font-display text-white text-lg mb-2">Blackmere Intelligence</p>
-            <p>Live M&A intelligence powered by Groq AI. Refreshes every 2 hours.</p>
+            <p>Live M&A intelligence powered by FMP data · updated daily.</p>
           </div>
           <div className="flex gap-8">
             <div>
@@ -121,7 +160,7 @@ export default async function Home() {
             <div>
               <p className="text-white font-semibold mb-2">Data</p>
               <ul className="space-y-1">
-                <li>Groq AI</li>
+                <li>FMP · Groq AI</li>
                 <li>Deal Analysis</li>
               </ul>
             </div>

@@ -13,7 +13,35 @@ import {
 import { getCachedArticles, isCacheStale } from "@/lib/article-cache";
 import ArticleLink from "@/components/ArticleLink";
 import ArticleDrawer from "@/components/ArticleDrawer";
+import SectorEditorialLayout from "@/components/SectorEditorialLayout";
 
+// ── KV deal type ──────────────────────────────────────────────────────────────
+interface FmpDeal {
+  id: string;
+  title: string;
+  acquirer: string;
+  target: string;
+  description: string;
+  value: string | null;
+  date: string;
+  status: string;
+  sector: string;
+}
+
+async function getKvDeals(sectorId: string): Promise<FmpDeal[] | null> {
+  try {
+    const { kv } = await import('@vercel/kv');
+    const raw = await kv.get<string>('sector-deals');
+    if (!raw) return null;
+    const allSectorDeals = JSON.parse(raw as string);
+    const deals = allSectorDeals[sectorId];
+    return Array.isArray(deals) && deals.length > 0 ? deals : null;
+  } catch {
+    return null;
+  }
+}
+
+// ── Groq fallback layout ──────────────────────────────────────────────────────
 type DealCategory = "Private Equity & Buyouts" | "Strategic / Corporate";
 
 function getDealCategory(article: Article): DealCategory {
@@ -78,29 +106,28 @@ function CategorySection({ title, articles, borderColor }: { title: DealCategory
   );
 }
 
+// ── Page ─────────────────────────────────────────────────────────────────────
 export default async function SectorPage({ params }: { params: { id: string } }) {
   const sector = SECTOR_MAP.find((s) => s.id === params.id);
   if (!sector) notFound();
 
-  // Use shared cache if available and fresh — avoids a redundant Groq call
-  const cached = getCachedArticles();
-  const allArticles: Article[] = (!isCacheStale() && cached.length > 0)
-    ? (cached as Article[])
-    : await fetchMaNews();
-  const sectorArticles = allArticles.filter((a) => {
-    const text = `${a.title} ${a.description ?? ""}`.toLowerCase();
-    return sector.keywords.some((kw) => text.includes(kw.toLowerCase()));
-  });
+  // Try KV first (populated by daily cron at 6am)
+  const kvDeals = await getKvDeals(params.id);
 
-  const grouped: Record<DealCategory, Article[]> = {
-    "Private Equity & Buyouts": [],
-    "Strategic / Corporate": [],
-  };
-  for (const a of sectorArticles) {
-    grouped[getDealCategory(a)].push(a);
+  // Groq fallback — only called when KV is empty
+  let groqArticles: Article[] = [];
+  if (!kvDeals) {
+    const cached = getCachedArticles();
+    const allArticles: Article[] = (!isCacheStale() && cached.length > 0)
+      ? (cached as Article[])
+      : await fetchMaNews();
+    groqArticles = allArticles.filter((a) => {
+      const text = `${a.title} ${a.description ?? ""}`.toLowerCase();
+      return sector.keywords.some((kw) => text.includes(kw.toLowerCase()));
+    });
   }
 
-  const totalDeals = sectorArticles.length;
+  const totalDeals = kvDeals ? kvDeals.length : groqArticles.length;
 
   return (
     <>
@@ -118,7 +145,7 @@ export default async function SectorPage({ params }: { params: { id: string } })
                 {sector.label}
               </h1>
               <p className="text-xs text-ft-muted mt-1 tracking-widest">
-                {totalDeals} LIVE DEAL{totalDeals !== 1 ? "S" : ""} · CLICK ANY CARD FOR AI BRIEFING
+                {totalDeals} DEAL{totalDeals !== 1 ? "S" : ""} · CLICK ANY CARD FOR AI BRIEFING
               </p>
             </div>
             <nav className="hidden md:flex flex-wrap gap-2 justify-end">
@@ -136,7 +163,7 @@ export default async function SectorPage({ params }: { params: { id: string } })
         </div>
       </header>
 
-      <main className="max-w-screen-xl mx-auto px-6 py-8">
+      <main>
         {totalDeals === 0 ? (
           <div className="py-20 text-center">
             <p className="text-ft-muted">No live deals found for {sector.label} right now.</p>
@@ -144,11 +171,26 @@ export default async function SectorPage({ params }: { params: { id: string } })
               ← Back to all deals
             </Link>
           </div>
+        ) : kvDeals ? (
+          // KV editorial layout (FMP data)
+          <SectorEditorialLayout deals={kvDeals} sectorLabel={sector.label} />
         ) : (
-          <>
-            <CategorySection title="Strategic / Corporate" articles={grouped["Strategic / Corporate"]} borderColor="#0D7680" />
-            <CategorySection title="Private Equity & Buyouts" articles={grouped["Private Equity & Buyouts"]} borderColor="#990F3D" />
-          </>
+          // Groq fallback — existing card grid
+          <div className="max-w-screen-xl mx-auto px-6 py-8">
+            {(() => {
+              const grouped: Record<DealCategory, Article[]> = {
+                "Private Equity & Buyouts": [],
+                "Strategic / Corporate": [],
+              };
+              for (const a of groqArticles) grouped[getDealCategory(a)].push(a);
+              return (
+                <>
+                  <CategorySection title="Strategic / Corporate" articles={grouped["Strategic / Corporate"]} borderColor="#0D7680" />
+                  <CategorySection title="Private Equity & Buyouts" articles={grouped["Private Equity & Buyouts"]} borderColor="#990F3D" />
+                </>
+              );
+            })()}
+          </div>
         )}
       </main>
 
