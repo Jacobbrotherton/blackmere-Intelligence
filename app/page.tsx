@@ -44,7 +44,7 @@ async function getKvData(): Promise<{ articles: Article[] | null; lastUpdated: s
     if (!feedRaw) return { articles: null, lastUpdated: null };
     const feed: any[] = typeof feedRaw === 'string' ? JSON.parse(feedRaw) : feedRaw as any;
     return {
-      articles: Array.isArray(feed) && feed.length > 0 ? feed.map(dealToArticle) : null,
+      articles: Array.isArray(feed) && feed.length > 0 ? feed.filter(Boolean).map(dealToArticle) : null,
       lastUpdated: lastUpdated as string | null,
     };
   } catch (e) {
