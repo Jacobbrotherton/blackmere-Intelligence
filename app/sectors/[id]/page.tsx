@@ -35,9 +35,8 @@ async function getKvDeals(sectorId: string): Promise<FmpDeal[] | null> {
       url: process.env.Blackmere_KV_REST_API_URL!,
       token: process.env.Blackmere_KV_REST_API_TOKEN!,
     });
-    const raw = await kv.get<string>('sector-deals');
-    if (!raw) return null;
-    const allSectorDeals = JSON.parse(raw as string);
+    const allSectorDeals = await kv.get<Record<string, FmpDeal[]>>('sector-deals');
+    if (!allSectorDeals) return null;
     const deals = allSectorDeals[sectorId];
     return Array.isArray(deals) && deals.length > 0 ? deals : null;
   } catch {

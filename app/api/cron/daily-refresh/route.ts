@@ -125,11 +125,11 @@ Return only the JSON array starting with [ and ending with ].`;
     const heatmapMatch = heatmapCleaned.match(/\[[\s\S]*\]/);
     const heatmapData = heatmapMatch ? JSON.parse(heatmapMatch[0]) : [];
 
-    await kv.set('homepage-feed', JSON.stringify(homepageFeed));
-    await kv.set('spotlight', JSON.stringify(spotlight));
-    await kv.set('sector-counts', JSON.stringify(sectorCounts));
-    await kv.set('sector-deals', JSON.stringify(sectorDeals));
-    await kv.set('heatmap-base', JSON.stringify(heatmapData));
+    await kv.set('homepage-feed', homepageFeed);
+    await kv.set('spotlight', spotlight);
+    await kv.set('sector-counts', sectorCounts);
+    await kv.set('sector-deals', sectorDeals);
+    await kv.set('heatmap-base', heatmapData);
     await kv.set('last-updated', new Date().toISOString());
 
     return NextResponse.json({

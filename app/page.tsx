@@ -37,12 +37,11 @@ async function getKvData(): Promise<{ articles: Article[] | null; lastUpdated: s
       url: process.env.Blackmere_KV_REST_API_URL!,
       token: process.env.Blackmere_KV_REST_API_TOKEN!,
     });
-    const [feedRaw, lastUpdated] = await Promise.all([
-      kv.get<string>('homepage-feed'),
+    const [feed, lastUpdated] = await Promise.all([
+      kv.get<any[]>('homepage-feed'),
       kv.get<string>('last-updated'),
     ]);
-    if (!feedRaw) return { articles: null, lastUpdated: null };
-    const feed = JSON.parse(feedRaw as string);
+    if (!feed) return { articles: null, lastUpdated: null };
     return {
       articles: Array.isArray(feed) && feed.length > 0 ? feed.map(dealToArticle) : null,
       lastUpdated: lastUpdated as string | null,
