@@ -17,8 +17,9 @@ export async function GET(request: Request) {
   const period  = searchParams.get('period')  || 'YTD';
 
   try {
-    const base = await kv.get<{ sector: string; deals: number; change: string }[]>('heatmap-base');
-    if (!base) throw new Error('No heatmap data in KV yet — run the daily cron first');
+    const rawBase = await kv.get('heatmap-base');
+    if (!rawBase) throw new Error('No heatmap data in KV yet — run the daily cron first');
+    const base: { sector: string; deals: number; change: string }[] = typeof rawBase === 'string' ? JSON.parse(rawBase) : rawBase as any;
 
     const regionScale = REGION_SCALE[region] ?? 1;
     const periodScale = PERIOD_SCALE[period] ?? 1;

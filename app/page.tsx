@@ -37,16 +37,18 @@ async function getKvData(): Promise<{ articles: Article[] | null; lastUpdated: s
       url: process.env.Blackmere_KV_REST_API_URL!,
       token: process.env.Blackmere_KV_REST_API_TOKEN!,
     });
-    const [feed, lastUpdated] = await Promise.all([
-      kv.get<any[]>('homepage-feed'),
+    const [feedRaw, lastUpdated] = await Promise.all([
+      kv.get('homepage-feed'),
       kv.get<string>('last-updated'),
     ]);
-    if (!feed) return { articles: null, lastUpdated: null };
+    if (!feedRaw) return { articles: null, lastUpdated: null };
+    const feed: any[] = typeof feedRaw === 'string' ? JSON.parse(feedRaw) : feedRaw as any;
     return {
       articles: Array.isArray(feed) && feed.length > 0 ? feed.map(dealToArticle) : null,
       lastUpdated: lastUpdated as string | null,
     };
-  } catch {
+  } catch (e) {
+    console.error('getKvData error:', e);
     return { articles: null, lastUpdated: null };
   }
 }

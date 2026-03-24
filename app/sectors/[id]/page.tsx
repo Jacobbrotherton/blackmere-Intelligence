@@ -35,11 +35,13 @@ async function getKvDeals(sectorId: string): Promise<FmpDeal[] | null> {
       url: process.env.Blackmere_KV_REST_API_URL!,
       token: process.env.Blackmere_KV_REST_API_TOKEN!,
     });
-    const allSectorDeals = await kv.get<Record<string, FmpDeal[]>>('sector-deals');
-    if (!allSectorDeals) return null;
+    const raw = await kv.get('sector-deals');
+    if (!raw) return null;
+    const allSectorDeals: Record<string, FmpDeal[]> = typeof raw === 'string' ? JSON.parse(raw) : raw as any;
     const deals = allSectorDeals[sectorId];
     return Array.isArray(deals) && deals.length > 0 ? deals : null;
-  } catch {
+  } catch (e) {
+    console.error('getKvDeals error:', e);
     return null;
   }
 }
