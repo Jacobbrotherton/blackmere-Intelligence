@@ -8,13 +8,10 @@ import SectorOrbit from "@/components/SectorOrbit";
 import NewsSection from "@/components/NewsSection";
 import DealSpotlight from "@/components/DealSpotlight";
 import ArticleDrawer from "@/components/ArticleDrawer";
-import BriefingPrefetcher from "@/components/BriefingPrefetcher";
 import LandmarkDeals from "@/components/LandmarkDeals";
-import { PremiumUpgradeBanner } from "@/components/PremiumUpgradeBanner";
 import SectorHeatmap from "@/components/SectorHeatmap";
 import SearchBar from "@/components/SearchBar";
 import StockAnalysisNavButton from "@/components/StockAnalysisNavButton";
-import UpgradeNavButton from "@/components/UpgradeNavButton";
 
 // Adapt FMP KV deal to Article shape (used when KV has data)
 function dealToArticle(deal: any): Article {
@@ -111,7 +108,6 @@ export default async function Home() {
           <div className="pl-4 py-1.5 flex-shrink-0 flex items-center gap-3">
             <SearchBar />
             <StockAnalysisNavButton />
-            <UpgradeNavButton />
           </div>
         </div>
       </nav>
@@ -143,9 +139,6 @@ export default async function Home() {
 
       {/* Landmark Deals of the Last Decade carousel */}
       <LandmarkDeals />
-
-      {/* Premium upgrade banner — shown to free users at bottom of homepage */}
-      <PremiumUpgradeBanner />
 
       {/* Footer */}
       <footer className="bg-ft-black text-gray-400 text-xs mt-0 px-6 py-8">
@@ -180,8 +173,6 @@ export default async function Home() {
 
       {/* Article detail modal — client component, mounted once at root */}
       <ArticleDrawer />
-      {/* Pre-warm AI briefing cache for the top 5 articles */}
-      <BriefingPrefetcher articles={articles} />
     </>
   );
 }

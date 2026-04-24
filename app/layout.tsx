@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { SubscriptionProvider } from "@/lib/subscription-context";
 import { AuthProvider } from "@/lib/auth-context";
-import { DealAnalystChat } from "@/components/ui/deal-analyst-chat";
 
 const BASE_URL = "https://blackmereintelligence.com";
 
@@ -79,7 +78,6 @@ export default function RootLayout({
         <AuthProvider>
           <SubscriptionProvider>
             {children}
-            <DealAnalystChat />
           </SubscriptionProvider>
         </AuthProvider>
       </body>
