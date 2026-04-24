@@ -14,6 +14,14 @@ export interface RumouredDeal {
   dateRumoured: string;
   status: "Rumour" | "Talks Confirmed" | "Under Review";
   sector: string;
+  dealProbability: number;
+  probabilityRationale: string;
+  keyStats: {
+    acquirerMarketCap: string;
+    targetMarketCap: string;
+    estimatedPremium: string;
+    sectorAvgMultiple: string;
+  };
 }
 
 // Sorted by estimatedValueNum descending (largest deal first)
@@ -34,6 +42,14 @@ export const rumouredDeals: RumouredDeal[] = [
     dateRumoured: "2025-12",
     status: "Talks Confirmed",
     sector: "Media / Entertainment",
+    dealProbability: 82,
+    probabilityRationale: "Definitive merger agreement signed; WBD shareholder vote completed, awaiting DOJ and FCC clearance for Q3 2026 close.",
+    keyStats: {
+      acquirerMarketCap: "$4.5B",
+      targetMarketCap: "$15.8B",
+      estimatedPremium: "34%",
+      sectorAvgMultiple: "7.8x EV/EBITDA",
+    },
   },
   {
     id: "musk-openai",
@@ -51,6 +67,14 @@ export const rumouredDeals: RumouredDeal[] = [
     dateRumoured: "2025-02",
     status: "Under Review",
     sector: "Artificial Intelligence / Technology",
+    dealProbability: 12,
+    probabilityRationale: "Board rejected bid; legal proceedings ongoing — court outcome could reopen restructuring scenarios but full acquisition remains unlikely near-term.",
+    keyStats: {
+      acquirerMarketCap: "Private",
+      targetMarketCap: "$260B (last round)",
+      estimatedPremium: "N/A",
+      sectorAvgMultiple: "N/A",
+    },
   },
   {
     id: "up-nsc",
@@ -68,6 +92,14 @@ export const rumouredDeals: RumouredDeal[] = [
     dateRumoured: "2025-06",
     status: "Under Review",
     sector: "Transportation / Infrastructure",
+    dealProbability: 30,
+    probabilityRationale: "STB rejected initial application; Union Pacific refiling expected April 2026 — multi-year review process ahead, regulatory outcome highly uncertain.",
+    keyStats: {
+      acquirerMarketCap: "$135B",
+      targetMarketCap: "$55B",
+      estimatedPremium: "25%",
+      sectorAvgMultiple: "14.2x EV/EBITDA",
+    },
   },
   {
     id: "devon-coterra",
@@ -85,6 +117,14 @@ export const rumouredDeals: RumouredDeal[] = [
     dateRumoured: "2026-02",
     status: "Talks Confirmed",
     sector: "Energy / Oil & Gas",
+    dealProbability: 90,
+    probabilityRationale: "Definitive all-stock agreement signed February 2026; no antitrust barriers, shareholder vote approved, Q2 2026 close imminent.",
+    keyStats: {
+      acquirerMarketCap: "$22B",
+      targetMarketCap: "$17B",
+      estimatedPremium: "22%",
+      sectorAvgMultiple: "4.5x EV/EBITDA",
+    },
   },
   {
     id: "charter-cox",
@@ -102,6 +142,14 @@ export const rumouredDeals: RumouredDeal[] = [
     dateRumoured: "2025-05",
     status: "Talks Confirmed",
     sector: "Telecommunications / Cable",
+    dealProbability: 78,
+    probabilityRationale: "FCC approved February 2026; California PUC approval the only remaining hurdle before September 2026 deadline.",
+    keyStats: {
+      acquirerMarketCap: "$48B",
+      targetMarketCap: "N/A (private)",
+      estimatedPremium: "N/A",
+      sectorAvgMultiple: "9.1x EV/EBITDA",
+    },
   },
   {
     id: "merck-rvmd",
@@ -114,11 +162,19 @@ export const rumouredDeals: RumouredDeal[] = [
     dealType: "Acquisition",
     estimatedValue: "$30B",
     estimatedValueNum: 30,
-    summary: "The Financial Times reported in January 2026 that Merck is in advanced acquisition talks with Revolution Medicines, the South San Francisco-based oncology biotech, in a deal that could value RVMD at between $28 billion and $32 billion — potentially the largest biotech acquisition since Pfizer's $43 billion purchase of Seagen in 2023. Bloomberg subsequently confirmed the discussions. AbbVie was also reported by the Wall Street Journal to have evaluated Revolution Medicines, though AbbVie publicly denied active negotiations. No formal agreement has been announced as of mid-March 2026.\n\nThe strategic rationale for Merck is as much existential as opportunistic. Keytruda — Merck's flagship PD-1 cancer immunotherapy and the world's best-selling oncology drug at over $25 billion in annual revenue — begins facing biosimilar competition following US patent expiry in 2028. Merck needs a pipeline anchor to sustain its oncology franchise through the 2030s, and Revolution Medicines' RAS(ON) inhibitor platform represents one of the most scientifically validated and commercially significant approaches in the field. KRAS-mutant cancers account for approximately 25% of all human cancers and have historically been considered 'undruggable.' Revolution's lead assets RMC-6236 (pan-RAS inhibitor) and RMC-6291 (KRAS G12C-selective) are in Phase 2/3 trials showing compelling early efficacy and tolerability signals.\n\nRevolution Medicines shares rose approximately 40% on the initial FT report. The company's board retained Morgan Stanley as financial advisor. A formal announcement would likely be framed as Merck's primary pipeline replenishment vehicle for the critical 2028-2032 Keytruda cliff period, following the company's previous unsuccessful attempt to acquire Seagen.",
+    summary: "The Financial Times reported in January 2026 that Merck is in advanced acquisition talks with Revolution Medicines, the South San Francisco-based oncology biotech, in a deal that could value RVMD at between $28 billion and $32 billion — potentially the largest biotech acquisition since Pfizer's $43 billion purchase of Seagen in 2023. Bloomberg subsequently confirmed the discussions. AbbVie was also reported by the Wall Street Journal to have evaluated Revolution Medicines, though AbbVie publicly denied active negotiations. No formal agreement has been announced as of April 2026.\n\nThe strategic rationale for Merck is as much existential as opportunistic. Keytruda — Merck's flagship PD-1 cancer immunotherapy and the world's best-selling oncology drug at over $25 billion in annual revenue — begins facing biosimilar competition following US patent expiry in 2028. Merck needs a pipeline anchor to sustain its oncology franchise through the 2030s, and Revolution Medicines' RAS(ON) inhibitor platform represents one of the most scientifically validated and commercially significant approaches in the field. KRAS-mutant cancers account for approximately 25% of all human cancers and have historically been considered 'undruggable.' Revolution's lead assets RMC-6236 (pan-RAS inhibitor) and RMC-6291 (KRAS G12C-selective) are in Phase 2/3 trials showing compelling early efficacy and tolerability signals.\n\nRevolution Medicines shares rose approximately 40% on the initial FT report. The company's board retained Morgan Stanley as financial advisor. A formal announcement would likely be framed as Merck's primary pipeline replenishment vehicle for the critical 2028-2032 Keytruda cliff period.",
     source: "Financial Times / Bloomberg",
     dateRumoured: "2026-01",
     status: "Rumour",
     sector: "Pharmaceuticals / Oncology",
+    dealProbability: 45,
+    probabilityRationale: "Advanced talks confirmed by FT and Bloomberg; no formal deal announcement yet — Merck board weighing price against Keytruda cliff urgency.",
+    keyStats: {
+      acquirerMarketCap: "$260B",
+      targetMarketCap: "$8.5B",
+      estimatedPremium: "40%",
+      sectorAvgMultiple: "N/A (pre-revenue)",
+    },
   },
   {
     id: "denso-rohm",
@@ -136,6 +192,14 @@ export const rumouredDeals: RumouredDeal[] = [
     dateRumoured: "2026-03",
     status: "Talks Confirmed",
     sector: "Semiconductors / Automotive",
+    dealProbability: 68,
+    probabilityRationale: "Formal proposal made March 2026; both companies confirmed discussions are underway — METI support adds political tailwind.",
+    keyStats: {
+      acquirerMarketCap: "$44B",
+      targetMarketCap: "$6.1B",
+      estimatedPremium: "38%",
+      sectorAvgMultiple: "12.1x EV/EBITDA",
+    },
   },
   {
     id: "apple-peloton",
@@ -148,10 +212,18 @@ export const rumouredDeals: RumouredDeal[] = [
     dealType: "Acquisition",
     estimatedValue: "$1.8B",
     estimatedValueNum: 1.8,
-    summary: "Peloton's Q2 FY2026 earnings report in February 2026 triggered a 23% single-day share price collapse after the company missed consensus estimates on both revenue and subscriber retention, revealing that paid subscription membership had declined over 6% year-over-year to 5.8 million — its lowest level since 2020. The results renewed analyst speculation about Apple making an opportunistic acquisition of the connected fitness platform, now valued at under $2 billion compared to its $50 billion pandemic-era peak. Bloomberg and CNBC have cited sources familiar with Apple's corporate strategy at various points suggesting the company has internally evaluated Peloton on multiple occasions.\n\nThe investment thesis centres on accelerating Apple Fitness+, its subscription workout content service, by acquiring Peloton's 3 million active paid subscribers, proprietary class content library, and hardware design and manufacturing expertise in connected cardio equipment. Integration with Apple Watch, Apple Health, and the broader Apple ecosystem would position Apple as the dominant platform for personal health and fitness — a long-term strategic priority Tim Cook has publicly endorsed as Apple's potential 'greatest contribution to mankind.' The structural synergies are considerable: Peloton's instructor talent and live class infrastructure would immediately elevate Fitness+ beyond its current perceived inferiority relative to Peloton's content library.\n\nHowever, Apple has historically avoided acquiring companies with complex hardware manufacturing operations and significant debt. Peloton carries approximately $700 million in long-term debt and continues to burn cash. Multiple analysts argue that Apple would prefer to license Peloton content or build organically rather than inherit manufacturing complexity. No formal negotiations have been confirmed by either party as of March 2026.",
+    summary: "Peloton's Q2 FY2026 earnings report in February 2026 triggered a 23% single-day share price collapse after the company missed consensus estimates on both revenue and subscriber retention, revealing that paid subscription membership had declined over 6% year-over-year to 5.8 million — its lowest level since 2020. The results renewed analyst speculation about Apple making an opportunistic acquisition of the connected fitness platform, now valued at under $2 billion compared to its $50 billion pandemic-era peak. Bloomberg and CNBC have cited sources familiar with Apple's corporate strategy at various points suggesting the company has internally evaluated Peloton on multiple occasions.\n\nThe investment thesis centres on accelerating Apple Fitness+, its subscription workout content service, by acquiring Peloton's 3 million active paid subscribers, proprietary class content library, and hardware design and manufacturing expertise in connected cardio equipment. Integration with Apple Watch, Apple Health, and the broader Apple ecosystem would position Apple as the dominant platform for personal health and fitness — a long-term strategic priority Tim Cook has publicly endorsed as Apple's potential 'greatest contribution to mankind.' The structural synergies are considerable: Peloton's instructor talent and live class infrastructure would immediately elevate Fitness+ beyond its current perceived inferiority relative to Peloton's content library.\n\nHowever, Apple has historically avoided acquiring companies with complex hardware manufacturing operations and significant debt. Peloton carries approximately $700 million in long-term debt and continues to burn cash. Multiple analysts argue that Apple would prefer to license Peloton content or build organically rather than inherit manufacturing complexity. No formal negotiations have been confirmed by either party as of April 2026.",
     source: "Bloomberg / CNBC",
     dateRumoured: "2026-02",
     status: "Rumour",
     sector: "Consumer Technology / Health & Fitness",
+    dealProbability: 28,
+    probabilityRationale: "No formal talks confirmed; Apple historically avoids hardware M&A with debt — strong strategic fit but execution barriers remain high.",
+    keyStats: {
+      acquirerMarketCap: "$3.2T",
+      targetMarketCap: "$1.1B",
+      estimatedPremium: "60%",
+      sectorAvgMultiple: "1.2x EV/Revenue",
+    },
   },
 ];
