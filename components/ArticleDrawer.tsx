@@ -9,7 +9,6 @@ import {
   formatDealValue,
 } from "@/lib/news";
 import { briefings } from "@/lib/briefings";
-import { ArticleSummariseButton } from "@/components/ui/article-summarise-button";
 
 // ── Section parsing ────────────────────────────────────────────────────────────
 const SECTION_NAMES = [
@@ -129,9 +128,6 @@ export default function ArticleDrawer() {
             <h2 className="font-display text-2xl md:text-3xl font-bold leading-snug text-ft-black mb-4">
               {article.title}
             </h2>
-
-            {/* ── AI Article Summariser ────────────────────────────────── */}
-            <ArticleSummariseButton articleTitle={article.title} articleUrl={article.url} />
 
             {/* ── Meta row ─────────────────────────────────────────────── */}
             <div className="flex flex-wrap items-center gap-3 text-xs pb-5 border-b border-ft-border mt-3">
