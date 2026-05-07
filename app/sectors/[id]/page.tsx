@@ -1,66 +1,15 @@
-export const revalidate = 7200;
-
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import {
-  fetchMaNews,
   SECTOR_MAP,
   Article,
   timeAgo,
   extractDealValue,
   formatDealValue,
 } from "@/lib/news";
-import { getCachedArticles, isCacheStale } from "@/lib/article-cache";
+import { homepageArticles } from "@/lib/homepage-articles";
 import ArticleLink from "@/components/ArticleLink";
 import ArticleDrawer from "@/components/ArticleDrawer";
-import SectorEditorialLayout from "@/components/SectorEditorialLayout";
-
-// ── KV deal type ──────────────────────────────────────────────────────────────
-interface FmpDeal {
-  id: string;
-  title: string;
-  acquirer: string;
-  target: string;
-  description: string;
-  value: string | null;
-  date: string;
-  status: string;
-  sector: string;
-}
-
-async function getKvDeals(sectorId: string): Promise<FmpDeal[] | null> {
-  try {
-    const { Redis } = await import('@upstash/redis');
-    const kv = new Redis({
-      url: process.env.Blackmere_KV_REST_API_URL!,
-      token: process.env.Blackmere_KV_REST_API_TOKEN!,
-    });
-    const raw = await kv.get('sector-deals');
-    if (!raw) return null;
-    const allSectorDeals: Record<string, FmpDeal[]> = typeof raw === 'string' ? JSON.parse(raw) : raw as any;
-    const deals = allSectorDeals[sectorId];
-    return Array.isArray(deals) && deals.length > 0 ? deals : null;
-  } catch (e) {
-    console.error('getKvDeals error:', e);
-    return null;
-  }
-}
-
-// ── Groq fallback layout ──────────────────────────────────────────────────────
-type DealCategory = "Private Equity & Buyouts" | "Strategic / Corporate";
-
-function getDealCategory(article: Article): DealCategory {
-  const text = `${article.title} ${article.description ?? ""}`.toLowerCase();
-  if (
-    [
-      "private equity", "buyout", " lbo ", "leveraged buyout", "take-private",
-      "take private", "kkr", "blackstone", "carlyle", "apollo", "warburg",
-      "pe firm", "pe-backed", "sponsor",
-    ].some((k) => text.includes(k))
-  )
-    return "Private Equity & Buyouts";
-  return "Strategic / Corporate";
-}
 
 function ArticleCard({ article }: { article: Article }) {
   const rawValue = extractDealValue(`${article.title} ${article.description ?? ""}`);
@@ -88,51 +37,23 @@ function ArticleCard({ article }: { article: Article }) {
       )}
       <div className="flex items-center justify-between mt-2">
         <span className="text-xs font-semibold text-ft-teal">{article.source.name}</span>
-        <span className="text-xs text-ft-teal group-hover:underline">AI Briefing →</span>
+        <span className="text-xs text-ft-teal group-hover:underline">Deal Briefing →</span>
       </div>
     </ArticleLink>
   );
 }
 
-function CategorySection({ title, articles, borderColor }: { title: DealCategory; articles: Article[]; borderColor: string }) {
-  if (articles.length === 0) return null;
-  return (
-    <div className="mb-10">
-      <div className={`border-l-4 pl-4 mb-5`} style={{ borderColor }}>
-        <h3 className="font-display text-xl font-bold text-ft-black">{title}</h3>
-        <p className="text-xs text-ft-muted mt-0.5">{articles.length} deal{articles.length !== 1 ? "s" : ""}</p>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {articles.map((article, i) => (
-          <ArticleCard key={i} article={article} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ── Page ─────────────────────────────────────────────────────────────────────
-export default async function SectorPage({ params }: { params: { id: string } }) {
+export default function SectorPage({ params }: { params: { id: string } }) {
   const sector = SECTOR_MAP.find((s) => s.id === params.id);
   if (!sector) notFound();
 
-  // Try KV first (populated by daily cron at 6am)
-  const kvDeals = await getKvDeals(params.id);
+  // Filter homepage articles by sector keywords; show all if none match
+  const sectorArticles = homepageArticles.filter((a) => {
+    const text = `${a.title} ${a.description ?? ""} ${a.sector ?? ""}`.toLowerCase();
+    return sector.keywords.some((kw) => text.includes(kw.toLowerCase()));
+  });
 
-  // Groq fallback — only called when KV is empty
-  let groqArticles: Article[] = [];
-  if (!kvDeals) {
-    const cached = getCachedArticles();
-    const allArticles: Article[] = (!isCacheStale() && cached.length > 0)
-      ? (cached as Article[])
-      : await fetchMaNews();
-    groqArticles = allArticles.filter((a) => {
-      const text = `${a.title} ${a.description ?? ""}`.toLowerCase();
-      return sector.keywords.some((kw) => text.includes(kw.toLowerCase()));
-    });
-  }
-
-  const totalDeals = kvDeals ? kvDeals.length : groqArticles.length;
+  const articles: Article[] = sectorArticles.length > 0 ? sectorArticles : homepageArticles;
 
   return (
     <>
@@ -150,7 +71,7 @@ export default async function SectorPage({ params }: { params: { id: string } })
                 {sector.label}
               </h1>
               <p className="text-xs text-ft-muted mt-1 tracking-widest">
-                {totalDeals} DEAL{totalDeals !== 1 ? "S" : ""} · CLICK ANY CARD FOR AI BRIEFING
+                {articles.length} DEAL{articles.length !== 1 ? "S" : ""} · CLICK ANY CARD FOR DEAL BRIEFING
               </p>
             </div>
             <nav className="hidden md:flex flex-wrap gap-2 justify-end">
@@ -168,35 +89,12 @@ export default async function SectorPage({ params }: { params: { id: string } })
         </div>
       </header>
 
-      <main>
-        {totalDeals === 0 ? (
-          <div className="py-20 text-center">
-            <p className="text-ft-muted">No live deals found for {sector.label} right now.</p>
-            <Link href="/" className="mt-4 inline-block text-ft-teal text-sm hover:underline">
-              ← Back to all deals
-            </Link>
-          </div>
-        ) : kvDeals ? (
-          // KV editorial layout (FMP data)
-          <SectorEditorialLayout deals={kvDeals} sectorLabel={sector.label} />
-        ) : (
-          // Groq fallback — existing card grid
-          <div className="max-w-screen-xl mx-auto px-6 py-8">
-            {(() => {
-              const grouped: Record<DealCategory, Article[]> = {
-                "Private Equity & Buyouts": [],
-                "Strategic / Corporate": [],
-              };
-              for (const a of groqArticles) grouped[getDealCategory(a)].push(a);
-              return (
-                <>
-                  <CategorySection title="Strategic / Corporate" articles={grouped["Strategic / Corporate"]} borderColor="#0D7680" />
-                  <CategorySection title="Private Equity & Buyouts" articles={grouped["Private Equity & Buyouts"]} borderColor="#990F3D" />
-                </>
-              );
-            })()}
-          </div>
-        )}
+      <main className="max-w-screen-xl mx-auto px-6 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {articles.map((article, i) => (
+            <ArticleCard key={i} article={article} />
+          ))}
+        </div>
       </main>
 
       <ArticleDrawer />

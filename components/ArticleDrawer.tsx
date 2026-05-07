@@ -8,7 +8,7 @@ import {
   extractDealValue,
   formatDealValue,
 } from "@/lib/news";
-import { briefings } from "@/lib/briefings";
+import { briefings, generateFallbackBriefing } from "@/lib/briefings";
 
 // ── Section parsing ────────────────────────────────────────────────────────────
 const SECTION_NAMES = [
@@ -76,8 +76,8 @@ export default function ArticleDrawer() {
     year: "numeric",
   });
 
-  const briefingText = briefings[article.url] ?? null;
-  const sections = briefingText ? parseSections(briefingText) : [];
+  const briefingText = briefings[article.url] ?? generateFallbackBriefing(article);
+  const sections = parseSections(briefingText);
 
   return (
     <>
@@ -148,34 +148,18 @@ export default function ArticleDrawer() {
 
             {/* ── Briefing body ─────────────────────────────────────────── */}
             <div className="mt-6">
-              {sections.length > 0 ? (
-                <div className="space-y-6">
-                  {sections.map(({ heading, body }) => (
-                    <div key={heading}>
-                      <h3 className="text-xs font-bold tracking-widest text-ft-teal uppercase mb-2">
-                        {heading}
-                      </h3>
-                      <p className="text-sm text-ft-black leading-relaxed">
-                        {body}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="py-10 text-center space-y-4">
-                  <p className="text-sm text-ft-muted">
-                    Full briefing available for featured articles only — read the full story for details.
-                  </p>
-                  <a
-                    href={article.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 bg-ft-teal text-white text-sm font-semibold px-5 py-2.5 rounded-sm hover:opacity-90"
-                  >
-                    Read full story →
-                  </a>
-                </div>
-              )}
+              <div className="space-y-6">
+                {sections.map(({ heading, body }) => (
+                  <div key={heading}>
+                    <h3 className="text-xs font-bold tracking-widest text-ft-teal uppercase mb-2">
+                      {heading}
+                    </h3>
+                    <p className="text-sm text-ft-black leading-relaxed">
+                      {body}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

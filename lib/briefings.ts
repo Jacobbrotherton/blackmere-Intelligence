@@ -1,5 +1,31 @@
+import type { Article } from "@/lib/news";
+
 // Hardcoded AI-style briefings for each homepage article, keyed by article URL.
 // Refreshed 8 May 2026. Update alongside lib/homepage-articles.ts on each weekly refresh.
+
+// Generates a structured briefing from article metadata for any article not in the map.
+export function generateFallbackBriefing(article: Article): string {
+  const acquirer = article.acquirer ?? "The acquiring company";
+  const target = article.target ?? "the target company";
+  const dealValue = article.dealValue ? ` in a deal valued at ${article.dealValue}` : "";
+  const sector = article.sector ?? "the sector";
+  const description = article.description ?? article.title;
+
+  return `DEAL OVERVIEW
+${acquirer} has announced a transaction involving ${target}${dealValue}. ${description} This deal represents a significant development in ${sector} M&A activity and reflects ongoing consolidation trends across the industry.
+
+STRATEGIC RATIONALE
+The acquisition or merger is consistent with broader strategic goals around scale, market share, and operational efficiency. ${acquirer} is seeking to strengthen its competitive position by combining with or acquiring ${target}, gaining access to complementary assets, capabilities, or customer relationships that would be difficult or costly to build organically.
+
+MARKET CONTEXT
+The ${sector} sector has seen sustained M&A activity as companies pursue consolidation to navigate competitive pressures, regulatory headwinds, or structural shifts in their end markets. Transactions of this type typically reflect a broader industry trend toward fewer, larger players with greater pricing power and more diversified revenue streams.
+
+REGULATORY & TIMELINE OUTLOOK
+The transaction will be subject to standard regulatory review, including any applicable antitrust filings required by deal value and geographic scope. Timelines vary based on the jurisdictions involved and the degree of market overlap between the parties. Material conditions precedent, including shareholder approval where applicable, must be satisfied prior to close.
+
+ANALYST PERSPECTIVE
+Deals in the ${sector} space are typically evaluated on synergy potential, price discipline, and integration track record. Investors will focus on the strategic fit between ${acquirer} and ${target}, the implied valuation multiple relative to sector peers, and management's ability to deliver on post-close synergy commitments. Read the full article for the most current deal terms and analyst commentary.`;
+}
 
 export const briefings: Record<string, string> = {
   "https://worldoil.com/news/2026/5/7/devon-completes-coterra-merger-expands-delaware-basin-position/": `DEAL OVERVIEW
