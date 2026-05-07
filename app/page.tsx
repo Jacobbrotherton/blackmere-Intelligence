@@ -1,7 +1,5 @@
-export const dynamic = "force-dynamic";
-export const maxDuration = 60;
-
-import { fetchMaNews, SECTOR_MAP, Article } from "@/lib/news";
+import { homepageArticles } from "@/lib/homepage-articles";
+import { SECTOR_MAP } from "@/lib/news";
 import TickerBar from "@/components/TickerBar";
 import LeadStories from "@/components/LeadStories";
 import SectorOrbit from "@/components/SectorOrbit";
@@ -13,52 +11,10 @@ import SectorHeatmap from "@/components/SectorHeatmap";
 import SearchBar from "@/components/SearchBar";
 import StockAnalysisNavButton from "@/components/StockAnalysisNavButton";
 
-// Adapt FMP KV deal to Article shape (used when KV has data)
-function dealToArticle(deal: any): Article {
-  return {
-    title: deal.title ?? '',
-    description: deal.description ?? null,
-    url: deal.id || deal.title || '',
-    publishedAt: deal.date ? deal.date + 'T06:00:00Z' : new Date().toISOString(),
-    source: { name: deal.source ?? 'FMP' },
-    acquirer: deal.acquirer,
-    target: deal.target,
-    dealValue: deal.value ?? undefined,
-  };
-}
+const LAST_UPDATED = "2026-05-08";
 
-async function getKvData(): Promise<{ articles: Article[] | null; lastUpdated: string | null; sectorCounts: Record<string, number> | null }> {
-  try {
-    const { Redis } = await import('@upstash/redis');
-    const kv = new Redis({
-      url: process.env.Blackmere_KV_REST_API_URL!,
-      token: process.env.Blackmere_KV_REST_API_TOKEN!,
-    });
-    const [feedRaw, lastUpdated, countsRaw] = await Promise.all([
-      kv.get('homepage-feed'),
-      kv.get<string>('last-updated'),
-      kv.get('sector-counts'),
-    ]);
-    if (!feedRaw) return { articles: null, lastUpdated: null, sectorCounts: null };
-    const feed: any[] = typeof feedRaw === 'string' ? JSON.parse(feedRaw) : feedRaw as any;
-    const sectorCounts: Record<string, number> | null = countsRaw
-      ? (typeof countsRaw === 'string' ? JSON.parse(countsRaw) : countsRaw as any)
-      : null;
-    return {
-      articles: Array.isArray(feed) && feed.length > 0 ? feed.filter(Boolean).map(dealToArticle) : null,
-      lastUpdated: lastUpdated as string | null,
-      sectorCounts,
-    };
-  } catch (e) {
-    console.error('getKvData error:', e);
-    return { articles: null, lastUpdated: null, sectorCounts: null };
-  }
-}
-
-export default async function Home() {
-  // Try KV first (populated by daily cron), fall back to Groq
-  const { articles: kvArticles, lastUpdated, sectorCounts } = await getKvData();
-  const articles: Article[] = kvArticles ?? await fetchMaNews();
+export default function Home() {
+  const articles = homepageArticles;
 
   const LEAD_COUNT = 8;
   const leadUrls = new Set(articles.slice(0, LEAD_COUNT).map((a) => a.url));
@@ -77,11 +33,9 @@ export default async function Home() {
           <p className="text-xs text-ft-muted mt-1 tracking-widest">
             M&amp;A DEAL TRACKER · MERGERS · ACQUISITIONS · DIVESTITURES
           </p>
-          {lastUpdated && (
-            <p className="text-xs text-ft-muted mt-0.5">
-              Data refreshed {new Date(lastUpdated).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-            </p>
-          )}
+          <p className="text-xs text-ft-muted mt-0.5">
+            Data refreshed {new Date(LAST_UPDATED).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+          </p>
         </div>
       </header>
 
@@ -126,15 +80,14 @@ export default async function Home() {
 
         {/* FT-style spotlight — 4 most significant deals */}
         <DealSpotlight articles={articles} />
-
       </main>
 
-      {/* Sector Activity Heatmap — live deal intensity by sector */}
+      {/* Sector Activity Heatmap */}
       <SectorHeatmap />
 
       {/* Full-width orbital sector explorer */}
       <div className="max-w-screen-xl mx-auto px-6">
-        <SectorOrbit articles={articles} sectorCounts={sectorCounts ?? undefined} />
+        <SectorOrbit articles={articles} />
       </div>
 
       {/* Landmark Deals of the Last Decade carousel */}
@@ -145,7 +98,7 @@ export default async function Home() {
         <div className="max-w-screen-xl mx-auto flex flex-wrap gap-6 justify-between">
           <div>
             <p className="font-display text-white text-lg mb-2">Blackmere Intelligence</p>
-            <p>Live M&A intelligence powered by FMP data · updated daily.</p>
+            <p>M&A intelligence · manually refreshed weekly.</p>
           </div>
           <div className="flex gap-8">
             <div>
@@ -163,7 +116,7 @@ export default async function Home() {
             <div>
               <p className="text-white font-semibold mb-2">Data</p>
               <ul className="space-y-1">
-                <li>FMP · Groq AI</li>
+                <li>Curated M&A Research</li>
                 <li>Deal Analysis</li>
               </ul>
             </div>

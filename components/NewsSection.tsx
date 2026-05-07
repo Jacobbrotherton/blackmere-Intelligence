@@ -37,11 +37,6 @@ export default function NewsSection({ excludeUrls }: { excludeUrls?: string[] })
       setLastUpdated(new Date());
       setError(null);
       setCountdown(REFRESH_INTERVAL / 1000);
-      // Pre-warm briefing cache for the top 5 sidebar articles
-      fetched.slice(0, 5).forEach((a) => {
-        const params = new URLSearchParams({ headline: a.title, url: a.url });
-        fetch(`/api/briefing?${params}`).catch(() => {});
-      });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load news");
     } finally {
